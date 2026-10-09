@@ -7,3 +7,5 @@ export const STORAGE_KEYS = {
   authToken: 'auth.token',
   refreshToken: 'auth.refreshToken',
 } as const;
+
+export const PLACEHOLDER_COLOR = '#BDB8C7';

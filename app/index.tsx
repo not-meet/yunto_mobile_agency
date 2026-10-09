@@ -1,9 +1,6 @@
-import { Text, View } from 'react-native';
+import { Redirect } from 'expo-router';
 
-export default function HomeScreen() {
-  return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <Text className="text-lg font-semibold text-gray-900">Yunto</Text>
-    </View>
-  );
+// No saved session while the app runs on dummy data, so every launch starts at sign in.
+export default function Index() {
+  return <Redirect href="/sign-in" />;
 }

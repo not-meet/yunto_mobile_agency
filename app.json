@@ -16,9 +16,20 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.yunto.app"
     },
-    "plugins": ["expo-router", "expo-status-bar", "expo-secure-store", "expo-notifications"],
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-notifications",
+      "expo-font",
+      "expo-image",
+      "expo-video",
+      "@react-native-community/datetimepicker"
+    ],
     "scheme": "yunto",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "experiments": {
       "typedRoutes": true
     }
