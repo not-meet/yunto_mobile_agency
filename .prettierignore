@@ -1,0 +1,8 @@
+node_modules
+.expo
+dist
+bun.lockb
+bun.lock
+assets
+.claude
+CONVENTIONS.md

@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Yunto",
+    "slug": "yunto_mobile_app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.yunto.app"
+    },
+    "plugins": ["expo-router", "expo-status-bar", "expo-secure-store", "expo-notifications"],
+    "scheme": "yunto",
+    "platforms": ["android"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
