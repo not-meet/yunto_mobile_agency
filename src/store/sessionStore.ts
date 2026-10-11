@@ -13,6 +13,8 @@ interface SessionState {
   setUser: (user: User) => void;
   setAgency: (agency: Agency) => void;
   setRole: (role: Role) => void;
+  // Log Out on the profile. The role stays, since it's only a dev setting for now.
+  signOut: () => void;
 }
 
 export const useSessionStore = create<SessionState>()((set) => ({
@@ -22,4 +24,5 @@ export const useSessionStore = create<SessionState>()((set) => ({
   setUser: (user) => set({ user }),
   setAgency: (agency) => set({ agency }),
   setRole: (role) => set({ role }),
+  signOut: () => set({ user: null, agency: null }),
 }));

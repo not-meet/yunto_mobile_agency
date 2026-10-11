@@ -19,7 +19,7 @@ import {
 } from '@/components/leads/CreatorActionsBar';
 import { CreatorCard } from '@/components/leads/CreatorCard';
 import { CreatorFilters } from '@/components/leads/CreatorFilters';
-import { CreatorSearch } from '@/components/leads/CreatorSearch';
+import { CreatorSearch } from '@/components/common/CreatorSearch';
 import { CreatorSelectionBar } from '@/components/leads/CreatorSelectionBar';
 import { CreatorsSkeleton } from '@/components/leads/CreatorsSkeleton';
 import { type CreatorFilter, creatorMatches, creatorTint } from '@/components/leads/labels';

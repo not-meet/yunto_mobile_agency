@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { ArrowUpRight } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -8,7 +9,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
-import { CARD_SHADOW, comingSoon } from '@/components/home/shared';
+import { CARD_SHADOW } from '@/components/home/shared';
 import { usePressScale } from '@/hooks/usePressScale';
 import { teamPeriodSchema, type HomeDashboard, type TeamPeriod } from '@/services/homeService';
 
@@ -149,8 +150,7 @@ export function TeamGlance({ team }: { team: HomeDashboard['team'] }) {
         <Animated.View style={press.style}>
           <Pressable
             {...press.handlers}
-            // TODO(team): open the team screen once it exists.
-            onPress={() => comingSoon('Team overview')}
+            onPress={() => router.push('/team/people')}
             accessibilityRole="button"
             accessibilityLabel="Open team overview"
             className="h-8 w-8 items-center justify-center rounded-full bg-cocoa"

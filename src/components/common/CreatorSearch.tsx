@@ -3,7 +3,7 @@ import { Pressable, TextInput, View } from 'react-native';
 
 import { showToast } from '@/utils/notifications';
 
-// Narrows a lead's creators by name, handle or niche as it's typed.
+// Search box over a list of creators (a lead's, the roster): name, handle or niche.
 
 const QUERY_MAX = 60;
 

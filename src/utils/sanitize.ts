@@ -156,3 +156,17 @@ export function normalizeLink(raw: string): string | null {
   }`;
   return linkSchema.safeParse(url).success ? url : null;
 }
+
+// A number that can have a fraction (a rate, a percentage): digits and one dot, at most
+// `decimals` places after it.
+export function sanitizeDecimal(raw: string, maxDigits: number, decimals = 2): string {
+  const [whole = '', ...rest] = raw.replace(/[^\d.]/g, '').split('.');
+  const intPart = whole.replace(/^0+(?=\d)/, '').slice(0, maxDigits);
+  return rest.length > 0 ? `${intPart || '0'}.${rest.join('').slice(0, decimals)}` : intPart;
+}
+
+// Typing a social handle: always starts with "@", then letters, digits, dots or underscores.
+export function sanitizeHandleInput(raw: string): string {
+  const body = raw.replace(/[^A-Za-z0-9._]/g, '').slice(0, 30);
+  return body ? `@${body}` : '';
+}

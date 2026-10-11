@@ -9,8 +9,8 @@ import { CARD_SHADOW } from '@/components/home/shared';
 import { usePressScale } from '@/hooks/usePressScale';
 import type { Role } from '@/services/authService';
 
-// Avatar, name and role on the left; messages (side panel) and notifications (own screen) on
-// the right, as in yunto_mobile_app.
+// Avatar, name and role on the left (opens the profile); messages (side panel) and
+// notifications (own screen) on the right, as in yunto_mobile_app.
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
@@ -68,7 +68,13 @@ export function HomeHeader({ name, role }: HomeHeaderProps) {
 
   return (
     <View className="flex-row items-center justify-between gap-4">
-      <View className="flex-1 flex-row items-center gap-3">
+      <Pressable
+        onPress={() => router.push('/profile')}
+        accessibilityRole="button"
+        accessibilityLabel={`${name}, ${ROLE_LABELS[role]}`}
+        accessibilityHint="Opens your profile"
+        className="flex-1 flex-row items-center gap-3 active:opacity-80"
+      >
         <View className="h-12 w-12 items-center justify-center rounded-full bg-[#E9E1FF]">
           <Text className="font-inter-semibold text-base text-charcoal">{initials}</Text>
         </View>
@@ -83,7 +89,7 @@ export function HomeHeader({ name, role }: HomeHeaderProps) {
             {ROLE_LABELS[role]}
           </Text>
         </View>
-      </View>
+      </Pressable>
       <View className="flex-row gap-2">
         <IconButton icon={Mail} label="Messages" onPress={() => setMessagesOpen(true)} />
         <IconButton

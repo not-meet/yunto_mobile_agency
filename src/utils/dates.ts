@@ -86,3 +86,9 @@ export function longDate(date: Date): string {
 export function mediumDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+
+// "2026-05-22" → "22/05/2026".
+export function slashDate(key: string): string {
+  const [year, month, day] = key.split('-');
+  return `${day}/${month}/${year}`;
+}

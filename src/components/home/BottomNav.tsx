@@ -1,7 +1,7 @@
 import { type Href, router } from 'expo-router';
 import {
-  CalendarDays,
   ClipboardList,
+  Contact,
   House,
   type LucideIcon,
   Plus,
@@ -27,7 +27,7 @@ const BAR_BOTTOM_GAP = 22;
 const TABS: { label: string; icon: LucideIcon; href?: Href }[] = [
   { label: 'Home', icon: House },
   { label: 'Leads', icon: UsersRound, href: '/leads' },
-  { label: 'Planner', icon: CalendarDays },
+  { label: 'Creators', icon: Contact, href: '/creators' },
   { label: 'Reminder', icon: ClipboardList, href: '/reminders' },
 ];
 

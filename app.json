@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Yunto",
-    "slug": "yunto_mobile_app",
+    "slug": "yunto_agency_app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -32,6 +32,19 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f3eae8ca-ddd5-42d6-8836-2557c3fb844c"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f3eae8ca-ddd5-42d6-8836-2557c3fb844c"
+    },
+    "ios": {}
   }
 }
