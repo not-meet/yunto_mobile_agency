@@ -7,6 +7,7 @@ import {
   createTeam,
   type CreateTeamRequest,
   deleteTeam,
+  getCreatorAssignment,
   getMember,
   getMemberLeads,
   getMembers,
@@ -24,11 +25,13 @@ import {
 import { STALE_TIME } from '@/utils/queryCache';
 
 // e.g. ['team', 'list'], ['team', 'detail', 'sales'], ['team', 'leads', 'sales', 'lisa'],
-// ['team', 'people'], ['team', 'members'] and ['team', 'member', 'lisa'].
+// ['team', 'people'], ['team', 'members'], ['team', 'member', 'lisa'] and
+// ['team', 'creator-assignment'].
 const TEAM_KEY = ['team'];
 const LIST_KEY = [...TEAM_KEY, 'list'];
 const PEOPLE_KEY = [...TEAM_KEY, 'people'];
 const MEMBERS_KEY = [...TEAM_KEY, 'members'];
+const CREATOR_ASSIGNMENT_KEY = [...TEAM_KEY, 'creator-assignment'];
 const detailKey = (id: string) => [...TEAM_KEY, 'detail', id];
 const leadsKey = (teamId: string, memberId: string) => [...TEAM_KEY, 'leads', teamId, memberId];
 const memberKey = (id: string) => [...TEAM_KEY, 'member', id];
@@ -73,6 +76,14 @@ export function usePeople() {
 
 export function useMembers() {
   return useQuery({ queryKey: MEMBERS_KEY, queryFn: getMembers, staleTime: STALE_TIME.owned });
+}
+
+export function useCreatorAssignment() {
+  return useQuery({
+    queryKey: CREATOR_ASSIGNMENT_KEY,
+    queryFn: getCreatorAssignment,
+    staleTime: STALE_TIME.owned,
+  });
 }
 
 export function useMember(id: string) {

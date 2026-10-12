@@ -4,6 +4,7 @@ import { mockApiRequest } from '@/dummy/mockApi';
 import {
   mockAddMember,
   mockCreateTeam,
+  mockGetCreatorAssignment,
   mockDeleteTeam,
   mockGetMember,
   mockGetMemberLeads,
@@ -338,4 +339,25 @@ export async function addMember(
     mock: mockAddMember,
   });
   return added;
+}
+
+// How the agency's creators are split between the team, for Assign Creators.
+
+const creatorAssignmentResponse = z.object({
+  total: countSchema,
+  // Looked after by a teammate.
+  assigned: countSchema,
+  unassigned: countSchema,
+  // Assignments waiting on a manager's approval.
+  pendingApprovals: countSchema,
+});
+export type CreatorAssignment = z.infer<typeof creatorAssignmentResponse>;
+
+export async function getCreatorAssignment(): Promise<CreatorAssignment> {
+  return mockApiRequest({
+    method: 'GET',
+    path: '/creators/assignment',
+    response: creatorAssignmentResponse,
+    mock: mockGetCreatorAssignment,
+  });
 }

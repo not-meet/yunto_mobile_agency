@@ -1,4 +1,5 @@
 import type { Role } from '@/services/authService';
+import type { LeaveStatus, LeaveType } from '@/services/leaveService';
 import type { AssignAs, Gender } from '@/services/profileService';
 import type {
   EmploymentType,
@@ -214,3 +215,34 @@ const LEAD_TINTS = [
 export const leadTint = (index: number) => LEAD_TINTS[index % LEAD_TINTS.length] ?? LEAD_TINTS[0]!;
 
 export const pluralMembers = (count: number) => `${count} ${count === 1 ? 'Member' : 'Members'}`;
+
+export const pluralDays = (count: number) => `${count} ${count === 1 ? 'day' : 'days'}`;
+
+export const LEAVE_TYPE_LABELS: Record<LeaveType | typeof UNKNOWN, string> = {
+  casual: 'Casual Leave',
+  paid: 'Paid Leave',
+  UNKNOWN: 'Leave',
+};
+
+// A leave request's pill, in the member status pill's tints.
+export const LEAVE_STATUS_STYLES: Record<
+  LeaveStatus,
+  { label: string; background: string; border: string; dot: string; text: string }
+> = {
+  pending: {
+    label: 'Pending',
+    background: 'rgba(255, 251, 235, 0.6)',
+    border: '#FFD230',
+    dot: '#FFB900',
+    text: '#BB4D00',
+  },
+  approved: { ...MEMBER_STATUS_STYLES.active, label: 'Approved' },
+  rejected: {
+    label: 'Rejected',
+    background: '#FFF1F1',
+    border: '#FFC9C9',
+    dot: '#FB2C36',
+    text: '#C10007',
+  },
+  UNKNOWN: MEMBER_STATUS_STYLES.UNKNOWN,
+};

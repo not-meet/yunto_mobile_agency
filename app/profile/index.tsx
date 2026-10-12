@@ -1,42 +1,25 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { CircleUserRound, LogOut, Network, Plug, Users } from 'lucide-react-native';
-import { useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
-import { ConfirmSheet } from '@/components/common/ConfirmSheet';
 import { Reveal } from '@/components/common/Reveal';
-import { comingSoon } from '@/components/home/shared';
 import { ActivityRow } from '@/components/profile/ActivityRow';
 import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 import { ProfileSummary } from '@/components/profile/ProfileSummary';
 import { useProfile } from '@/hooks/useProfile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { useSessionStore } from '@/store/sessionStore';
 
 // The signed-in member's profile, opened from their photo or name on home: who they are and
 // their agency's code and numbers, then where to manage their details, the team, lead
 // distribution and integrations, and Log Out.
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
-  const signOut = useSessionStore((s) => s.signOut);
   const profile = useProfile();
   const pull = usePullToRefresh(profile);
-  const [loggingOut, setLoggingOut] = useState(false);
   const { data } = profile;
-
-  const logOut = () => {
-    setLoggingOut(false);
-    signOut();
-    // Nothing of this account should show to whoever signs in next.
-    queryClient.clear();
-    if (router.canDismiss()) router.dismissAll();
-    router.replace('/sign-in');
-  };
 
   return (
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top }}>
@@ -93,20 +76,19 @@ export default function ProfileScreen() {
                 tint="#F0F5F1"
                 onPress={() => router.push('/team')}
               />
-              {/* TODO(profile): open these once their screens exist. */}
               <ActivityRow
                 title="Lead Distribution"
                 subtitle="Auto-assign rules"
                 icon={Network}
                 tint="#F5F0FA"
-                onPress={() => comingSoon('Lead distribution')}
+                onPress={() => router.push('/profile/lead-distribution')}
               />
               <ActivityRow
                 title="Integrations"
                 subtitle="Facebook, Wordpress, Google Ads"
                 icon={Plug}
                 tint="#FEF9EE"
-                onPress={() => comingSoon('Integrations')}
+                onPress={() => router.push('/profile/integrations')}
               />
             </View>
           </Reveal>
@@ -117,7 +99,7 @@ export default function ProfileScreen() {
               title="Log Out"
               icon={LogOut}
               tint="#FFF1F1"
-              onPress={() => setLoggingOut(true)}
+              onPress={() => router.push('/profile/logout')}
               danger
             />
           </Reveal>
@@ -139,17 +121,6 @@ export default function ProfileScreen() {
       ) : (
         <ProfileSkeleton />
       )}
-
-      <ConfirmSheet
-        visible={loggingOut}
-        onClose={() => setLoggingOut(false)}
-        title="Log out?"
-        message="You’ll need to sign in again to see your agency’s leads and creators."
-        icon={LogOut}
-        tone={{ color: '#9B3232', background: '#FFF1F1' }}
-        confirmLabel="Log Out"
-        onConfirm={logOut}
-      />
     </View>
   );
 }

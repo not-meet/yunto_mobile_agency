@@ -16,7 +16,7 @@ import { Reveal } from '@/components/common/Reveal';
 import { comingSoon } from '@/components/home/shared';
 
 // "Team Management", opened from the profile: setting up teams and
-// members, managing the teams, and the people overview.
+// members, managing the teams, the people overview, leaves and creator assignment.
 
 // `href`: its screen. Items without one aren't built yet.
 const ITEMS: {
@@ -43,11 +43,17 @@ const ITEMS: {
     tone: { color: '#159B7F', background: '#CCFBF1' },
     href: '/team/people',
   },
-  { title: 'Leaves', icon: CalendarDays, tone: { color: '#EA580C', background: '#FFEDD5' } },
+  {
+    title: 'Leaves',
+    icon: CalendarDays,
+    tone: { color: '#EA580C', background: '#FFEDD5' },
+    href: '/team/leaves',
+  },
   {
     title: 'Assign Creators',
     icon: ClipboardCheck,
     tone: { color: '#059669', background: '#D1FAE5' },
+    href: '/team/assign-creators',
   },
 ];
 

@@ -534,3 +534,8 @@ export function mockAddMember(
   team?.memberIds.push(member.id);
   return { member: toMember(member) };
 }
+
+// GET /creators/assignment. Adds up to the profile's 24 creators.
+export function mockGetCreatorAssignment() {
+  return { total: 24, assigned: 18, unassigned: 6, pendingApprovals: 3 };
+}
