@@ -1,10 +1,10 @@
 import { ArrowLeftRight, CalendarCheck, type LucideIcon, UserPlus } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
+import { Switch } from '@/components/common/Switch';
 import { CARD_SHADOW } from '@/components/home/shared';
 import { PERMISSION_KEYS, PERMISSION_LABELS } from '@/components/team/labels';
 import { PillButton } from '@/components/team/PillButton';
-import { PillToggle } from '@/components/team/PillToggle';
 import type { Permissions } from '@/services/teamService';
 
 // What a member is allowed to do, each with a switch that saves as it's flipped.
@@ -47,12 +47,11 @@ export function AccessPermissions({ value, onChange, onAdd, saving }: AccessPerm
             <Text className="flex-1 font-inter-medium text-sm leading-5 text-[#111111]">
               {PERMISSION_LABELS[key]}
             </Text>
-            <PillToggle
+            <Switch
               value={value[key]}
-              onChange={(next) => onChange({ ...value, [key]: next })}
+              onValueChange={(next) => onChange({ ...value, [key]: next })}
               disabled={saving}
               label={PERMISSION_LABELS[key]}
-              tone="green"
             />
           </View>
         );

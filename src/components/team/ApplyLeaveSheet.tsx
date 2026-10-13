@@ -1,7 +1,7 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Calendar } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { BottomSheet } from '@/components/common/BottomSheet';
 import { Button } from '@/components/common/Button';
@@ -115,7 +115,12 @@ export function ApplyLeaveSheet({ visible, onClose, balance }: ApplyLeaveSheetPr
       onClose={apply.isPending ? () => {} : onClose}
       title="Apply for Leave"
     >
-      <View className="mt-5 gap-4">
+      <ScrollView
+        className="mt-5 shrink grow-0"
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ gap: 16, paddingBottom: 4 }}
+      >
         <SectionTitle>Leave type</SectionTitle>
         <View className="flex-row flex-wrap gap-2">
           {leaveTypeSchema.options.map((option) => (
@@ -159,7 +164,7 @@ export function ApplyLeaveSheet({ visible, onClose, balance }: ApplyLeaveSheetPr
           placeholder="e.g. Family function"
           multiline
         />
-      </View>
+      </ScrollView>
 
       {apply.isError ? (
         <Text

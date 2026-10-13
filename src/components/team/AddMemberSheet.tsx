@@ -5,9 +5,9 @@ import Animated, { FadeInDown, FadeOut, useReducedMotion } from 'react-native-re
 
 import { BottomSheet } from '@/components/common/BottomSheet';
 import { Button } from '@/components/common/Button';
+import { Switch } from '@/components/common/Switch';
 import { SelectField, SheetField } from '@/components/creators/InviteFields';
 import { PERMISSION_KEYS, PERMISSION_LABELS, ROLE_LABELS } from '@/components/team/labels';
-import { PillToggle } from '@/components/team/PillToggle';
 import { useAddMember } from '@/hooks/useTeam';
 import { type Role, roleSchema } from '@/services/authService';
 import {
@@ -114,11 +114,10 @@ function AdvancedSettings({
               <Text className="flex-1 font-inter-medium text-sm leading-5 text-[#111827]">
                 {PERMISSION_LABELS[key]}
               </Text>
-              <PillToggle
+              <Switch
                 value={value[key]}
-                onChange={(next) => onChange({ ...value, [key]: next })}
+                onValueChange={(next) => onChange({ ...value, [key]: next })}
                 label={PERMISSION_LABELS[key]}
-                tone="green"
               />
             </View>
           ))}

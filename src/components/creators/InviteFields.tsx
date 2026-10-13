@@ -65,7 +65,10 @@ export function SheetField({ label, value, onChangeText, placeholder, ...input }
           returnKeyType={input.multiline ? 'default' : 'done'}
           textAlignVertical={input.multiline ? 'top' : 'center'}
           accessibilityLabel={label}
-          className="py-0 font-inter-medium text-[15px] leading-[18px] text-[#111827]"
+          // Multiline, the input fills the box so a tap anywhere in it focuses the field.
+          className={`py-0 font-inter-medium text-[15px] leading-[18px] text-[#111827] ${
+            input.multiline ? 'min-h-[66px]' : ''
+          }`}
           {...input}
         />
       </Animated.View>

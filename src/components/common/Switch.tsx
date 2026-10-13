@@ -1,15 +1,17 @@
 import { Switch as NativeSwitch } from 'react-native';
 
-// The app's on/off switch: the platform switch in neutral greys. It sits inside a row that is
-// itself the accessible switch, so screen readers skip it rather than announce it twice.
+// The app's on/off switch: the platform switch in neutral greys. Inside a row that is itself the
+// accessible switch, leave out `label` so screen readers skip it rather than announce it twice.
+// On its own, pass `label` and it is the accessible switch.
 
 interface SwitchProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
+  label?: string;
 }
 
-export function Switch({ value, onValueChange, disabled = false }: SwitchProps) {
+export function Switch({ value, onValueChange, disabled = false, label }: SwitchProps) {
   return (
     <NativeSwitch
       value={value}
@@ -18,8 +20,9 @@ export function Switch({ value, onValueChange, disabled = false }: SwitchProps) 
       trackColor={{ false: '#D4D4D4', true: '#525252' }}
       thumbColor="#FAFAFA"
       ios_backgroundColor="#D4D4D4"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
+      {...(label === undefined
+        ? { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' }
+        : { accessibilityLabel: label })}
     />
   );
 }

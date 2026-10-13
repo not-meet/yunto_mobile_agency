@@ -1,7 +1,5 @@
-import { Mic, Search } from 'lucide-react-native';
-import { Pressable, TextInput, View } from 'react-native';
-
-import { showToast } from '@/utils/notifications';
+import { Search } from 'lucide-react-native';
+import { TextInput, View } from 'react-native';
 
 // Search box over a list of creators (a lead's, the roster): name, handle or niche.
 
@@ -30,16 +28,6 @@ export function CreatorSearch({ value, onChange }: CreatorSearchProps) {
         accessibilityLabel="Search creators"
         className="flex-1 p-0 font-inter text-sm leading-5 text-[#141311]"
       />
-      {/* TODO(creators): voice search. */}
-      <Pressable
-        onPress={() => showToast('Voice search is coming soon')}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel="Search by voice"
-        className="h-6 w-6 items-center justify-center rounded-full bg-[#141311] active:opacity-70"
-      >
-        <Mic size={11} color="#FAF7F2" strokeWidth={1.67} />
-      </Pressable>
     </View>
   );
 }

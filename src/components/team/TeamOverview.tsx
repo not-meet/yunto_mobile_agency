@@ -1,8 +1,8 @@
 import { Text, View } from 'react-native';
 
+import { Switch } from '@/components/common/Switch';
 import { CARD_SHADOW } from '@/components/home/shared';
 import { FOCUS_STYLES, pluralMembers } from '@/components/team/labels';
-import { PillToggle } from '@/components/team/PillToggle';
 import { TeamIcon } from '@/components/team/TeamIcon';
 import type { TeamDetails } from '@/services/teamService';
 
@@ -45,12 +45,11 @@ export function TeamOverview({ team, onAutoAssign, pendingAutoAssign }: TeamOver
           </Text>
         </View>
         <View className="items-end gap-1">
-          <PillToggle
+          <Switch
             value={autoAssign}
-            onChange={onAutoAssign}
+            onValueChange={onAutoAssign}
             disabled={pendingAutoAssign !== undefined}
             label="Auto-assign new leads"
-            tone="violet"
           />
           <Text className="font-inter-medium text-[10px] leading-[15px] text-black/40">
             Auto-assign
