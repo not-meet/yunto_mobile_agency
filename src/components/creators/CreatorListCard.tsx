@@ -1,8 +1,10 @@
 import {
+  Briefcase,
   Check,
   Eye,
   Lightbulb,
   type LucideIcon,
+  MapPin,
   MessageCircle,
   Phone,
   TrendingDown,
@@ -19,8 +21,9 @@ import { usePressScale } from '@/hooks/usePressScale';
 import type { Creator } from '@/services/creatorsService';
 import { formatCount } from '@/utils/format';
 
-// One creator on the Creators list: who they are, how they compare and what to do with their
-// rate, their numbers, and quick View / Call / Chat. The check picks them for sharing.
+// One creator on the Creators list, after the web agency card: who they are and where, how they
+// compare and what to do with their rate (or, on All Creators, who manages them), their reach and
+// value in two rows, and quick View / Call / Chat. The check picks them for sharing.
 
 const SHADOW = '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1)';
 
@@ -65,19 +68,41 @@ interface CreatorListCardProps {
   selected: boolean;
   onToggle: () => void;
   onOpen: () => void;
+  // All Creators: who manages them stands in for the rate suggestion.
+  showManaged?: boolean;
 }
 
-export function CreatorListCard({ creator, selected, onToggle, onOpen }: CreatorListCardProps) {
+export function CreatorListCard({
+  creator,
+  selected,
+  onToggle,
+  onOpen,
+  showManaged = false,
+}: CreatorListCardProps) {
   const press = usePressScale(0.98);
   const PlatformIcon = CREATOR_PLATFORM_STYLES[creator.platform].icon;
   const above = creator.vsAverage >= 0;
 
-  const stats = [
-    { label: 'Followers', value: formatCount(creator.followers), color: '#141311' },
-    { label: 'Views', value: formatCount(creator.avgViews), color: '#141311' },
-    { label: 'Leads', value: String(creator.leads), color: '#141311' },
-    { label: 'Eng.', value: `${creator.engagementRate}%`, color: '#23C16B' },
+  const managed = showManaged && creator.managedBy !== null;
+
+  // Reach, then value, as on the web card.
+  const rows = [
+    [
+      { label: 'Followers', value: formatCount(creator.followers), color: '#141311' },
+      { label: 'Avg. Views', value: formatCount(creator.avgViews), color: '#141311' },
+      { label: 'Eng.', value: `${creator.engagementRate}%`, color: '#23C16B' },
+    ],
+    [
+      {
+        label: 'Rating',
+        value: creator.rating === null ? '–' : `${creator.rating}★`,
+        color: '#141311',
+      },
+      { label: 'CPV', value: creator.cpv === null ? '–' : `${creator.cpv}p`, color: '#141311' },
+      { label: 'Match', value: `${creator.matchPct}%`, color: '#5560CC' },
+    ],
   ];
+  const stats = rows.flat();
 
   return (
     <Animated.View style={press.style}>
@@ -135,14 +160,21 @@ export function CreatorListCard({ creator, selected, onToggle, onOpen }: Creator
               </View>
             </View>
             <View className="flex-row flex-wrap gap-[7px]">
-              <Insight
-                icon={above ? TrendingUp : TrendingDown}
-                label={`${above ? '+' : ''}${creator.vsAverage}% ${above ? 'Above' : 'Below'} Average`}
-              />
-              <Insight
-                icon={Lightbulb}
-                label={`Suggestion: ${SUGGESTION_LABELS[creator.rateSuggestion]}`}
-              />
+              {creator.location ? <Insight icon={MapPin} label={creator.location} /> : null}
+              {managed ? (
+                <Insight icon={Briefcase} label={`Managed by ${creator.managedBy}`} />
+              ) : (
+                <>
+                  <Insight
+                    icon={above ? TrendingUp : TrendingDown}
+                    label={`${above ? '+' : ''}${creator.vsAverage}% ${above ? 'Above' : 'Below'} Average`}
+                  />
+                  <Insight
+                    icon={Lightbulb}
+                    label={`Suggestion: ${SUGGESTION_LABELS[creator.rateSuggestion]}`}
+                  />
+                </>
+              )}
             </View>
           </View>
 
@@ -161,24 +193,31 @@ export function CreatorListCard({ creator, selected, onToggle, onOpen }: Creator
           </Pressable>
         </View>
 
-        <View className="flex-row items-center rounded-2xl bg-[rgba(242,237,255,0.4)] p-2.5">
-          {stats.map((stat, i) => (
-            <Fragment key={stat.label}>
-              {i > 0 ? <View className="h-6 w-px bg-[rgba(20,19,17,0.06)]" /> : null}
-              <View className="flex-1 items-center">
-                <Text className="font-inter text-[9px] uppercase leading-[14px] tracking-[0.45px] text-[#8C8A84]">
-                  {stat.label}
-                </Text>
-                <Text
-                  className={`font-inter-extrabold ${
-                    i === stats.length - 1 ? 'text-xs leading-4' : 'text-sm leading-5'
-                  }`}
-                  style={{ color: stat.color }}
-                >
-                  {stat.value}
-                </Text>
-              </View>
-            </Fragment>
+        <View className="gap-2 rounded-2xl bg-[rgba(242,237,255,0.4)] p-2.5">
+          {rows.map((row, r) => (
+            <View
+              key={r}
+              className={`flex-row items-center ${
+                r > 0 ? 'border-t border-[rgba(20,19,17,0.06)] pt-2' : ''
+              }`}
+            >
+              {row.map((stat, i) => (
+                <Fragment key={stat.label}>
+                  {i > 0 ? <View className="h-6 w-px bg-[rgba(20,19,17,0.06)]" /> : null}
+                  <View className="flex-1 items-center">
+                    <Text className="font-inter text-[9px] uppercase leading-[14px] tracking-[0.45px] text-[#8C8A84]">
+                      {stat.label}
+                    </Text>
+                    <Text
+                      className="font-inter-extrabold text-sm leading-5"
+                      style={{ color: stat.color }}
+                    >
+                      {stat.value}
+                    </Text>
+                  </View>
+                </Fragment>
+              ))}
+            </View>
           ))}
         </View>
 

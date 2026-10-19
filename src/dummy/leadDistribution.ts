@@ -3,31 +3,42 @@ import { ApiError } from '@/utils/api';
 
 // TEMPORARY fixtures + handlers for the lead distribution screen. Delete with the folder.
 //
-// Held in memory only: saved preferences are gone after a restart. Leads go to the sales
-// members who've joined; anyone new joins the end of the line.
+// Held in memory only: saved preferences are gone after a restart. Anyone who's joined can be
+// in a sequence or be a priority recipient.
 
 type MockMode = 'random' | 'broadcast' | 'round-robin';
+type MockChannel = 'leads' | 'campaigns';
 
-let MODE: MockMode = 'round-robin';
-let ORDER: string[] = ['sanjay', 'riya', 'lisa'];
-
-function eligible() {
-  return mockGetMembers().members.filter(
-    (m) => m.status !== 'invited' && (m.role === 'sales' || ORDER.includes(m.id)),
-  );
+interface MockSettings {
+  mode: MockMode;
+  sequence: string[];
+  priority: string[];
 }
 
+const SETTINGS: Record<MockChannel, MockSettings> = {
+  leads: {
+    mode: 'round-robin',
+    sequence: ['sanjay', 'rahul', 'lisa'],
+    priority: ['aryan', 'vishal'],
+  },
+  campaigns: { mode: 'round-robin', sequence: ['riya', 'priya', 'karan'], priority: [] },
+};
+
+function eligible() {
+  return mockGetMembers().members.filter((m) => m.status !== 'invited');
+}
+
+const copy = (settings: MockSettings): MockSettings => ({
+  mode: settings.mode,
+  sequence: [...settings.sequence],
+  priority: [...settings.priority],
+});
+
 function snapshot() {
-  const members = eligible();
-  const rank = (id: string) => {
-    const at = ORDER.indexOf(id);
-    return at < 0 ? ORDER.length : at;
-  };
   return {
-    mode: MODE,
-    members: [...members]
-      .sort((a, b) => rank(a.id) - rank(b.id))
-      .map(({ id, name }) => ({ id, name })),
+    leads: copy(SETTINGS.leads),
+    campaigns: copy(SETTINGS.campaigns),
+    members: eligible().map(({ id, name, role, assignAs }) => ({ id, name, role, assignAs })),
   };
 }
 
@@ -36,18 +47,16 @@ export function mockGetLeadDistribution() {
   return snapshot();
 }
 
-// PUT /lead-distribution. The order has to name everyone leads go to, once each.
+// PUT /lead-distribution/:channel. Everyone named has to still be on the team.
 export function mockUpdateLeadDistribution(
-  payload: { mode: MockMode; order: string[] } | undefined,
+  channel: MockChannel,
+  payload: MockSettings | undefined,
 ) {
   if (!payload) throw new ApiError('Invalid preferences', 400, { message: 'Invalid preferences' });
-  const ids = eligible().map((m) => m.id);
-  const sameMembers =
-    payload.order.length === ids.length && ids.every((id) => payload.order.includes(id));
-  if (!sameMembers) {
+  const ids = new Set(eligible().map((m) => m.id));
+  if (![...payload.sequence, ...payload.priority].every((id) => ids.has(id))) {
     throw new ApiError('Team changed', 409, { message: 'Team changed', code: 'members_changed' });
   }
-  MODE = payload.mode;
-  ORDER = [...payload.order];
+  SETTINGS[channel] = copy(payload);
   return snapshot();
 }

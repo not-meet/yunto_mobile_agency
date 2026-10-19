@@ -67,6 +67,16 @@ const creatorSchema = z.object({
   engagementRate: z.number().nonnegative(),
   // Leads they've been pitched on.
   leads: z.number().int().nonnegative(),
+  // e.g. "Mumbai, MH".
+  location: z.string().min(1).nullable(),
+  // Out of 5; null until they've been rated.
+  rating: z.number().min(0).max(5).nullable(),
+  // Paise per view, e.g. 12 for "12p CPV"; null until known.
+  cpv: z.number().nonnegative().nullable(),
+  // Percent fit for the agency's briefs, e.g. 84.
+  matchPct: z.number().int().min(0).max(100),
+  // The agency (or teammate) handling them, e.g. "Stellar Talent"; shown on All Creators.
+  managedBy: z.string().min(1).nullable(),
   // Percent against the average creator of their tier, e.g. 35 for "+35% Above Average".
   vsAverage: z.number(),
   rateSuggestion: rateSuggestionSchema,
@@ -141,23 +151,58 @@ const platformStatsSchema = z.object({
 });
 export type PlatformStats = z.infer<typeof platformStatsSchema>;
 
-// Rupees per piece of content on one platform; null where they don't offer it.
+// Rupees (tax inc.) for one piece of content: what the creator charges against the going rate
+// for their tier, and what to do about the gap.
+const contentRateSchema = z.object({
+  creatorRate: z.number().nonnegative(),
+  // null until there's enough market data.
+  marketRate: z.number().nonnegative().nullable(),
+  suggestion: rateSuggestionSchema,
+});
+export type ContentRate = z.infer<typeof contentRateSchema>;
+
+// A creator's rates on one platform; null where they don't offer that content.
 const commercialsSchema = z.object({
   platform: tolerantEnum(creatorPlatformSchema.options),
-  reel: z.number().nonnegative().nullable(),
-  story: z.number().nonnegative().nullable(),
-  post: z.number().nonnegative().nullable(),
+  // Percent against the average creator of their tier on this platform, e.g. 21 for "+21% above
+  // avg"; null when unknown.
+  vsAverage: z.number().nullable(),
+  reel: contentRateSchema.nullable(),
+  story: contentRateSchema.nullable(),
+  post: contentRateSchema.nullable(),
 });
 export type Commercials = z.infer<typeof commercialsSchema>;
 
+// What the creator has done (or is doing) with the agency, newest first.
+const campaignStatusSchema = tolerantEnum([
+  'active',
+  'upcoming',
+  'completed',
+  'cancelled',
+  'draft',
+]);
+export type CampaignStatus = z.infer<typeof campaignStatusSchema>;
+
+const recentCampaignSchema = z.object({
+  id: idSchema,
+  name: z.string().min(1),
+  // "YYYY-MM-DD".
+  date: z.iso.date(),
+  // e.g. "2 Reels, 1 Story".
+  deliverables: z.string().min(1),
+  status: campaignStatusSchema,
+});
+export type RecentCampaign = z.infer<typeof recentCampaignSchema>;
+
 const creatorDetailsSchema = creatorSchema.extend({
   email: z.email().nullable(),
-  // e.g. "Mumbai, MH".
-  location: z.string().min(1).nullable(),
+  // Their home address on one line, for shoots and barter deliveries.
+  address: z.string().min(1).nullable(),
   // Niche first, then any other categories, e.g. ["Lifestyle", "Beauty"].
   categories: z.array(z.string().min(1)),
   platforms: z.array(platformStatsSchema),
   commercials: z.array(commercialsSchema),
+  recentCampaigns: z.array(recentCampaignSchema),
 });
 export type CreatorDetails = z.infer<typeof creatorDetailsSchema>;
 

@@ -60,7 +60,15 @@ const SECTIONS_BY_ROLE: Record<Role, SectionKey[]> = {
     'reminders',
     'activity',
   ],
-  operations: ['performance', 'topCreators', 'liveCampaigns', 'services', 'reminders', 'activity'],
+  operations: [
+    'performance',
+    'revenue',
+    'topCreators',
+    'liveCampaigns',
+    'services',
+    'reminders',
+    'activity',
+  ],
 };
 
 const STAGGER_MS = 70;

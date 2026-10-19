@@ -149,6 +149,7 @@ export default function CreatorsScreen() {
                 selected={pickedIds.has(item.id)}
                 onToggle={() => toggle(item)}
                 onOpen={() => router.push({ pathname: '/creators/[id]', params: { id: item.id } })}
+                showManaged={scope === 'all'}
               />
             </Animated.View>
           )}

@@ -2,6 +2,7 @@ import {
   Lightbulb,
   Link2,
   type LucideIcon,
+  MapPin,
   MessageCircle,
   Phone,
   Share2,
@@ -18,9 +19,9 @@ import type { CreatorDetails } from '@/services/creatorsService';
 import { formatCount } from '@/utils/format';
 import { showToast } from '@/utils/notifications';
 
-// Top of a creator's profile: photo, name and handle with WhatsApp and Call, their niche and
-// categories, how they compare and what to do with their rate, their public link, and their
-// reach at a glance.
+// Top of a creator's profile: photo, name and handle with WhatsApp and Call, their niche,
+// categories and city, how they compare and what to do with their rate, their public link, and
+// their reach and rating at a glance (two by two, as on the web profile).
 
 const SHADOW = '0px 4px 14px rgba(0, 0, 0, 0.1)';
 
@@ -89,9 +90,14 @@ export function ProfileCard({ creator }: { creator: CreatorDetails }) {
   const above = creator.vsAverage >= 0;
   const link = creator.profileUrl.replace(/^https:\/\//, '');
   const stats = [
-    { label: 'Followers', value: formatCount(creator.followers) },
-    { label: 'Views', value: formatCount(creator.avgViews) },
-    { label: 'Leads', value: String(creator.leads) },
+    [
+      { label: 'Followers', value: formatCount(creator.followers) },
+      { label: 'Eng. Rate', value: `${creator.engagementRate}%` },
+    ],
+    [
+      { label: 'Rating', value: creator.rating === null ? '–' : `${creator.rating} Stars` },
+      { label: 'Avg. Views', value: formatCount(creator.avgViews) },
+    ],
   ];
 
   const shareLink = () =>
@@ -148,7 +154,7 @@ export function ProfileCard({ creator }: { creator: CreatorDetails }) {
           </View>
         </View>
 
-        {creator.categories.length > 0 ? (
+        {creator.categories.length > 0 || creator.location ? (
           <View className="flex-row flex-wrap gap-2 pt-1">
             {creator.categories.map((category, i) => {
               const tone = CATEGORY_TONES[i % CATEGORY_TONES.length] ?? CATEGORY_TONES[0]!;
@@ -162,6 +168,15 @@ export function ProfileCard({ creator }: { creator: CreatorDetails }) {
                 />
               );
             })}
+            {creator.location ? (
+              <Pill
+                label={creator.location}
+                icon={MapPin}
+                background="rgba(240, 245, 250, 0.9)"
+                border="rgba(58, 92, 126, 0.18)"
+                color="#3A5C7E"
+              />
+            ) : null}
           </View>
         ) : null}
 
@@ -206,20 +221,24 @@ export function ProfileCard({ creator }: { creator: CreatorDetails }) {
         </View>
       </View>
 
-      <View className="mx-4 flex-row rounded-[18px] border border-black/5 bg-[rgba(240,245,250,0.7)]">
-        {stats.map((stat, i) => (
-          <View
-            key={stat.label}
-            accessible
-            accessibilityLabel={`${stat.label}, ${stat.value}`}
-            className={`flex-1 items-center gap-1 py-3 ${i > 0 ? 'border-l border-black/5' : ''}`}
-          >
-            <Text className="font-inter-bold text-[11px] uppercase leading-4 tracking-[1.1px] text-[#AAAAAA]">
-              {stat.label}
-            </Text>
-            <Text className="font-inter-semibold text-lg leading-[27px] tracking-[-0.45px] text-[#111111]">
-              {stat.value}
-            </Text>
+      <View className="mx-4 rounded-[18px] border border-black/5 bg-[rgba(240,245,250,0.7)]">
+        {stats.map((row, r) => (
+          <View key={r} className={`flex-row ${r > 0 ? 'border-t border-black/5' : ''}`}>
+            {row.map((stat, i) => (
+              <View
+                key={stat.label}
+                accessible
+                accessibilityLabel={`${stat.label}, ${stat.value}`}
+                className={`flex-1 items-center gap-1 py-3 ${i > 0 ? 'border-l border-black/5' : ''}`}
+              >
+                <Text className="font-inter-bold text-[11px] uppercase leading-4 tracking-[1.1px] text-[#AAAAAA]">
+                  {stat.label}
+                </Text>
+                <Text className="font-inter-semibold text-lg leading-[27px] tracking-[-0.45px] text-[#111111]">
+                  {stat.value}
+                </Text>
+              </View>
+            ))}
           </View>
         ))}
       </View>

@@ -458,9 +458,21 @@ function findCreator(id: string): MockCreator {
   return creator;
 }
 
+const daysAgoKey = (days: number) => hoursAgo(days * 24).slice(0, 10);
+
+// Ratings, CPV and match follow from how they perform, so the numbers agree with each other.
+function rating(creator: MockCreator) {
+  return Math.min(5, Math.max(1, Number((3.8 + creator.vsAverage / 40).toFixed(1))));
+}
+
+function location(creator: MockCreator) {
+  return creator.city ? [creator.city, creator.state].filter(Boolean).join(', ') : null;
+}
+
 function toListItem(creator: MockCreator) {
   const { id, name, handle, avatarUrl, niche, followers, avgViews, engagementRate } = creator;
-  const { leads, vsAverage, rateSuggestion, phone, rosterStatus } = creator;
+  const { leads, vsAverage, rateSuggestion, phone, rosterStatus, reelRate } = creator;
+  const stars = rating(creator);
   return {
     id,
     name,
@@ -472,6 +484,13 @@ function toListItem(creator: MockCreator) {
     avgViews,
     engagementRate,
     leads,
+    location: location(creator),
+    rating: stars,
+    cpv:
+      reelRate === null || avgViews === 0 ? null : Number(((reelRate * 100) / avgViews).toFixed(1)),
+    matchPct: Math.round((stars / 5) * 100),
+    // Off-roster creators belong to another agency.
+    managedBy: rosterStatus === null ? 'Bloom Collective' : null,
     vsAverage,
     rateSuggestion,
     phone,
@@ -496,10 +515,17 @@ function toDetails(creator: MockCreator) {
     };
   });
   const rate = creator.reelRate;
+  // Market rate sits above, near or below theirs to match the suggestion.
+  const marketShare = { increase: 1.3, hold: 1.05, decrease: 0.9 }[creator.rateSuggestion];
+  const contentRate = (creatorRate: number) => ({
+    creatorRate,
+    marketRate: Math.round((creatorRate * marketShare) / 500) * 500,
+    suggestion: creator.rateSuggestion,
+  });
   return {
     ...toListItem(creator),
     email: creator.email,
-    location: creator.city ? [creator.city, creator.state].filter(Boolean).join(', ') : null,
+    address: creator.city ? `14, Hill Road, ${location(creator)} 400050` : null,
     categories: [creator.niche, ...creator.categories],
     platforms,
     commercials:
@@ -509,9 +535,47 @@ function toDetails(creator: MockCreator) {
             .filter((platform) => platform === 'instagram' || platform === 'youtube')
             .map((platform) =>
               platform === 'instagram'
-                ? { platform, reel: rate, story: rate, post: rate }
-                : { platform, reel: Math.round(rate * 1.5), story: null, post: null },
+                ? {
+                    platform,
+                    vsAverage: creator.vsAverage,
+                    reel: contentRate(rate),
+                    story: contentRate(Math.round(rate * 0.3)),
+                    post: contentRate(Math.round(rate * 0.6)),
+                  }
+                : {
+                    platform,
+                    vsAverage: null,
+                    reel: contentRate(Math.round(rate * 1.5)),
+                    story: null,
+                    post: null,
+                  },
             ),
+    recentCampaigns:
+      creator.rosterStatus === 'active'
+        ? [
+            {
+              id: `${creator.id}-glow`,
+              name: 'Glow Up Festive Edit',
+              date: daysAgoKey(2),
+              deliverables: '2 Reels, 1 Story',
+              status: 'active' as const,
+            },
+            {
+              id: `${creator.id}-summer`,
+              name: 'Summer Sips Launch',
+              date: daysAgoKey(-6),
+              deliverables: '1 Reel',
+              status: 'upcoming' as const,
+            },
+            {
+              id: `${creator.id}-monsoon`,
+              name: 'Monsoon Must-haves',
+              date: daysAgoKey(24),
+              deliverables: '3 Posts',
+              status: 'completed' as const,
+            },
+          ]
+        : [],
   };
 }
 
@@ -619,4 +683,10 @@ export function mockCreateCreator(payload: MockNewCreator | undefined) {
   };
   CREATORS.unshift(creator);
   return { creator: toDetails(creator) };
+}
+
+// For the calendar mock: where they post, and whether the agency can plan for them.
+export function mockCalendarCreator(id: string) {
+  const creator = findCreator(id);
+  return { platforms: creator.platforms, onRoster: creator.rosterStatus !== null };
 }

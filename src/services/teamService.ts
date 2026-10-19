@@ -3,10 +3,12 @@ import { z } from 'zod';
 import { mockApiRequest } from '@/dummy/mockApi';
 import {
   mockAddMember,
+  mockAssignCreators,
   mockCreateTeam,
   mockGetCreatorAssignment,
   mockDeleteTeam,
   mockGetMember,
+  mockGetMemberCreators,
   mockGetMemberLeads,
   mockGetMembers,
   mockGetPeople,
@@ -343,6 +345,22 @@ export async function addMember(
 
 // How the agency's creators are split between the team, for Assign Creators.
 
+// A creator as Assign Creators lists them.
+const assignableCreatorSchema = z.object({
+  id: idSchema,
+  name: z.string().min(1),
+  // e.g. "@leenabliss".
+  handle: z.string().min(1),
+  avatarUrl: z.url().nullable(),
+  // e.g. "Travel".
+  niche: z.string().min(1),
+});
+export type AssignableCreator = z.infer<typeof assignableCreatorSchema>;
+
+// A teammate with how many creators they're the POC of.
+const assigneeSchema = memberSchema.extend({ creators: countSchema });
+export type Assignee = z.infer<typeof assigneeSchema>;
+
 const creatorAssignmentResponse = z.object({
   total: countSchema,
   // Looked after by a teammate.
@@ -350,6 +368,12 @@ const creatorAssignmentResponse = z.object({
   unassigned: countSchema,
   // Assignments waiting on a manager's approval.
   pendingApprovals: countSchema,
+  // Each team, the creators its members look after, and its members.
+  teams: z.array(
+    z.object({ team: teamSchema, creators: countSchema, members: z.array(assigneeSchema) }),
+  ),
+  // Creators nobody looks after yet, newest first.
+  unassignedCreators: z.array(assignableCreatorSchema),
 });
 export type CreatorAssignment = z.infer<typeof creatorAssignmentResponse>;
 
@@ -360,4 +384,38 @@ export async function getCreatorAssignment(): Promise<CreatorAssignment> {
     response: creatorAssignmentResponse,
     mock: mockGetCreatorAssignment,
   });
+}
+
+// Making a teammate the POC of some unassigned creators, from the Assign Creators sheet.
+export const assignCreatorsRequest = z.object({
+  creatorIds: z.array(idSchema).min(1, 'Pick at least one creator'),
+  // Their POC.
+  memberId: z.string({ error: 'Pick who looks after them' }).pipe(idSchema),
+});
+export type AssignCreatorsRequest = z.infer<typeof assignCreatorsRequest>;
+
+export async function assignCreators(
+  assignment: AssignCreatorsRequest,
+): Promise<CreatorAssignment> {
+  return mockApiRequest({
+    method: 'POST',
+    path: '/creators/assignment',
+    request: assignCreatorsRequest,
+    body: assignment,
+    response: creatorAssignmentResponse,
+    mock: mockAssignCreators,
+  });
+}
+
+const memberCreatorsResponse = z.object({ creators: z.array(assignableCreatorSchema) });
+
+// The creators a member is the POC of.
+export async function getMemberCreators(id: string): Promise<AssignableCreator[]> {
+  const { creators } = await mockApiRequest({
+    method: 'GET',
+    path: `${memberPath(id)}/creators`,
+    response: memberCreatorsResponse,
+    mock: () => mockGetMemberCreators(idSchema.parse(id)),
+  });
+  return creators;
 }

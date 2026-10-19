@@ -9,7 +9,7 @@ import { usePressScale } from '@/hooks/usePressScale';
 import type { Revenue, TargetFrequency } from '@/services/homeService';
 import { formatInr } from '@/utils/format';
 
-// Admin and sales: revenue so far against the target, which "Set Target" changes.
+// Every role: revenue so far against the target, which "Set Target" changes.
 
 const PERIOD: Record<TargetFrequency, { label: string; previous: string }> = {
   weekly: { label: 'Weekly', previous: 'vs last week' },

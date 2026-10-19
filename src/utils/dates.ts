@@ -92,3 +92,30 @@ export function slashDate(key: string): string {
   const [year, month, day] = key.split('-');
   return `${day}/${month}/${year}`;
 }
+
+// Month helpers for the month calendars, as in yunto_mobile_app.
+
+// "2026-10".
+export function monthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// The first of the month `months` away.
+export function addMonths(date: Date, months: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
+// "October 2026", or "Oct 2026" when `short`.
+export function monthTitle(date: Date, short = false): string {
+  return date.toLocaleDateString('en-US', { month: short ? 'short' : 'long', year: 'numeric' });
+}
+
+// The month's days in weeks from Sunday, with null for the days of the months either side.
+export function monthGrid(month: Date): (Date | null)[][] {
+  const first = new Date(month.getFullYear(), month.getMonth(), 1);
+  const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const cells: (Date | null)[] = Array.from({ length: first.getDay() }, () => null);
+  for (let d = 1; d <= days; d++) cells.push(new Date(month.getFullYear(), month.getMonth(), d));
+  while (cells.length % 7 !== 0) cells.push(null);
+  return Array.from({ length: cells.length / 7 }, (_, week) => cells.slice(week * 7, week * 7 + 7));
+}

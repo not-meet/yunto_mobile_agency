@@ -1,0 +1,45 @@
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import {
+  addCalendarPost,
+  type AddCalendarPostRequest,
+  deleteCalendarPost,
+  getCreatorCalendar,
+} from '@/services/creatorCalendarService';
+import { STALE_TIME } from '@/utils/queryCache';
+
+// e.g. ['creators', 'leena', 'calendar', '2026-10'].
+const calendarKey = (creatorId: string) => ['creators', creatorId, 'calendar'];
+
+// Keeps the last month on screen (dimmed) while the next one loads.
+export function useCreatorCalendar(creatorId: string, month: string) {
+  return useQuery({
+    queryKey: [...calendarKey(creatorId), month],
+    queryFn: () => getCreatorCalendar(creatorId, month),
+    staleTime: STALE_TIME.owned,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAddCalendarPost(creatorId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    // The sheet makes `idempotencyKey` once per tap; a retry of that mutation reuses it.
+    mutationFn: ({
+      post,
+      idempotencyKey,
+    }: {
+      post: AddCalendarPostRequest;
+      idempotencyKey: string;
+    }) => addCalendarPost(creatorId, post, idempotencyKey),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: calendarKey(creatorId) }),
+  });
+}
+
+export function useDeleteCalendarPost(creatorId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: string) => deleteCalendarPost(creatorId, postId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: calendarKey(creatorId) }),
+  });
+}

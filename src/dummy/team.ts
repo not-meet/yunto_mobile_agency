@@ -535,7 +535,91 @@ export function mockAddMember(
   return { member: toMember(member) };
 }
 
-// GET /creators/assignment. Adds up to the profile's 24 creators.
+// The agency's creators and the teammate who looks after each (their POC; null if nobody yet).
+// 24, to add up to the profile's creators.
+const ROSTER: {
+  id: string;
+  name: string;
+  handle: string;
+  niche: string;
+  pocId: string | null;
+}[] = [
+  { id: 'leena', name: 'Leena Sharma', handle: '@leenabliss', niche: 'Fashion', pocId: 'vishal' },
+  { id: 'aarav', name: 'Aarav Mehta', handle: '@aarav.travels', niche: 'Travel', pocId: 'vishal' },
+  { id: 'kabir', name: 'Kabir Rao', handle: '@kabirvlogs', niche: 'Vlogs', pocId: 'vishal' },
+  { id: 'meera', name: 'Meera Iyer', handle: '@meeracooks', niche: 'Food', pocId: 'vishal' },
+  { id: 'rohan', name: 'Rohan Das', handle: '@rohanfits', niche: 'Fitness', pocId: 'priya' },
+  { id: 'tara', name: 'Tara Sen', handle: '@tarasen', niche: 'Beauty', pocId: 'priya' },
+  { id: 'ishaan', name: 'Ishaan Kapoor', handle: '@ishaantech', niche: 'Tech', pocId: 'priya' },
+  { id: 'naina', name: 'Naina Joshi', handle: '@nainadances', niche: 'Dance', pocId: 'arun' },
+  { id: 'vikram', name: 'Vikram Singh', handle: '@vikramdrives', niche: 'Auto', pocId: 'arun' },
+  { id: 'sana', name: 'Sana Qureshi', handle: '@sanastyles', niche: 'Fashion', pocId: 'riya' },
+  { id: 'arjun-n', name: 'Arjun Nair', handle: '@arjunreads', niche: 'Books', pocId: 'riya' },
+  {
+    id: 'priya-dev',
+    name: 'Priya & Dev',
+    handle: '@priyaanddev',
+    niche: 'Couple',
+    pocId: 'sanjay',
+  },
+  { id: 'zoya', name: 'Zoya Khan', handle: '@zoyakhan', niche: 'Lifestyle', pocId: 'sanjay' },
+  { id: 'harsh', name: 'Harsh Bajaj', handle: '@harshlaughs', niche: 'Comedy', pocId: 'sanjay' },
+  { id: 'anika', name: 'Anika Rao', handle: '@anikamoms', niche: 'Parenting', pocId: 'lisa' },
+  { id: 'dev-m', name: 'Dev Malhotra', handle: '@devgames', niche: 'Gaming', pocId: 'lisa' },
+  { id: 'kiara', name: 'Kiara Shah', handle: '@kiaraskin', niche: 'Skincare', pocId: 'rahul' },
+  { id: 'yash', name: 'Yash Gupta', handle: '@yashfinance', niche: 'Finance', pocId: 'parul' },
+  { id: 'riya-v', name: 'Riya Verma', handle: '@riyabliss', niche: 'Wellness', pocId: null },
+  { id: 'aditi', name: 'Aditi Menon', handle: '@aditieats', niche: 'Food', pocId: null },
+  { id: 'nikhil', name: 'Nikhil Jain', handle: '@nikhiltrails', niche: 'Travel', pocId: null },
+  { id: 'myra', name: 'Myra Bose', handle: '@myradraws', niche: 'Art', pocId: null },
+  { id: 'samar', name: 'Samar Khanna', handle: '@samarlifts', niche: 'Fitness', pocId: null },
+  { id: 'ira', name: 'Ira Pillai', handle: '@irasings', niche: 'Music', pocId: null },
+];
+
+function toAssignableCreator(creator: (typeof ROSTER)[number]) {
+  const { id, name, handle, niche } = creator;
+  return { id, name, handle, avatarUrl: avatar(`creator-${id}`), niche };
+}
+
+const creatorsOf = (memberId: string) => ROSTER.filter((c) => c.pocId === memberId);
+
+function toCreatorAssignment() {
+  const unassigned = ROSTER.filter((c) => c.pocId === null);
+  return {
+    total: ROSTER.length,
+    assigned: ROSTER.length - unassigned.length,
+    unassigned: unassigned.length,
+    pendingApprovals: 3,
+    teams: TEAMS.map((team) => ({
+      team: toTeam(team),
+      creators: ROSTER.filter((c) => c.pocId !== null && team.memberIds.includes(c.pocId)).length,
+      members: membersOf(team).map((m) => ({ ...toMember(m), creators: creatorsOf(m.id).length })),
+    })),
+    // Newest first: the end of the roster was added last.
+    unassignedCreators: unassigned.reverse().map(toAssignableCreator),
+  };
+}
+
+// GET /creators/assignment
 export function mockGetCreatorAssignment() {
-  return { total: 24, assigned: 18, unassigned: 6, pendingApprovals: 3 };
+  return toCreatorAssignment();
+}
+
+// POST /creators/assignment. Only unassigned creators move; anyone already looked after stays put.
+export function mockAssignCreators(
+  payload: { creatorIds: string[]; memberId: string } | undefined,
+) {
+  if (!payload) throw new ApiError('Invalid assignment', 400, { message: 'Invalid assignment' });
+  const member = findMember(payload.memberId);
+  for (const creator of ROSTER) {
+    if (creator.pocId === null && payload.creatorIds.includes(creator.id)) {
+      creator.pocId = member.id;
+    }
+  }
+  return toCreatorAssignment();
+}
+
+// GET /members/:id/creators
+export function mockGetMemberCreators(id: string) {
+  return { creators: creatorsOf(findMember(id).id).map(toAssignableCreator) };
 }

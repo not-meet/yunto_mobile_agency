@@ -4,11 +4,14 @@ import { PROFILE_KEY } from '@/hooks/useProfile';
 import {
   addMember,
   type AddMemberRequest,
+  assignCreators,
+  type AssignCreatorsRequest,
   createTeam,
   type CreateTeamRequest,
   deleteTeam,
   getCreatorAssignment,
   getMember,
+  getMemberCreators,
   getMemberLeads,
   getMembers,
   getPeople,
@@ -25,8 +28,8 @@ import {
 import { STALE_TIME } from '@/utils/queryCache';
 
 // e.g. ['team', 'list'], ['team', 'detail', 'sales'], ['team', 'leads', 'sales', 'lisa'],
-// ['team', 'people'], ['team', 'members'], ['team', 'member', 'lisa'] and
-// ['team', 'creator-assignment'].
+// ['team', 'people'], ['team', 'members'], ['team', 'member', 'lisa'],
+// ['team', 'creator-assignment'] and ['team', 'member-creators', 'lisa'].
 const TEAM_KEY = ['team'];
 const LIST_KEY = [...TEAM_KEY, 'list'];
 const PEOPLE_KEY = [...TEAM_KEY, 'people'];
@@ -35,6 +38,7 @@ const CREATOR_ASSIGNMENT_KEY = [...TEAM_KEY, 'creator-assignment'];
 const detailKey = (id: string) => [...TEAM_KEY, 'detail', id];
 const leadsKey = (teamId: string, memberId: string) => [...TEAM_KEY, 'leads', teamId, memberId];
 const memberKey = (id: string) => [...TEAM_KEY, 'member', id];
+const memberCreatorsKey = (id: string) => [...TEAM_KEY, 'member-creators', id];
 
 // Everything that summarises the teams, after one changed. A team's own detail is left alone:
 // the mutation that changed it puts the new one in place.
@@ -83,6 +87,26 @@ export function useCreatorAssignment() {
     queryKey: CREATOR_ASSIGNMENT_KEY,
     queryFn: getCreatorAssignment,
     staleTime: STALE_TIME.owned,
+  });
+}
+
+// The creators a member is the POC of.
+export function useMemberCreators(id: string) {
+  return useQuery({
+    queryKey: memberCreatorsKey(id),
+    queryFn: () => getMemberCreators(id),
+    staleTime: STALE_TIME.owned,
+  });
+}
+
+export function useAssignCreators() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (assignment: AssignCreatorsRequest) => assignCreators(assignment),
+    onSuccess: (assignment, { memberId }) => {
+      queryClient.setQueryData(CREATOR_ASSIGNMENT_KEY, assignment);
+      void queryClient.invalidateQueries({ queryKey: memberCreatorsKey(memberId) });
+    },
   });
 }
 

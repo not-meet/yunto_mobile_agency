@@ -1,20 +1,24 @@
-import { useLocalSearchParams } from 'expo-router';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { CalendarDays } from 'lucide-react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
 import { Reveal } from '@/components/common/Reveal';
 import { CommercialsCard } from '@/components/creators/CommercialsCard';
+import { ContactCard } from '@/components/creators/ContactCard';
 import { PlatformStatsCard } from '@/components/creators/PlatformStatsCard';
 import { ProfileCard } from '@/components/creators/ProfileCard';
 import { ProfileSkeleton } from '@/components/creators/ProfileSkeleton';
+import { RecentCampaignsCard } from '@/components/creators/RecentCampaignsCard';
 import { useCreator } from '@/hooks/useCreators';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
-// One creator's profile: who they are and how to reach them, each platform's numbers, and their
-// rates. Opened from a creator card or the roster with the creator's `id`, and right after
-// inviting someone.
+// One creator's profile, after the web's: who they are and how to reach them, each platform's
+// numbers, their rates, their recent campaigns and contact details. Opened from a creator card or
+// the roster with the creator's `id`, and right after inviting someone. The header opens their
+// content calendar: "Manage" for the agency's own creators, "View" for anyone else's.
 export default function CreatorProfileScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,6 +36,20 @@ export default function CreatorProfileScreen() {
         >
           Creator Profile
         </Text>
+        {data ? (
+          <Pressable
+            onPress={() => router.push({ pathname: '/creators/calendar', params: { id: data.id } })}
+            accessibilityRole="button"
+            accessibilityLabel={`${data.rosterStatus === null ? 'View' : 'Manage'} ${data.name}’s calendar`}
+            className="h-9 flex-row items-center gap-1.5 rounded-full bg-espresso px-3.5 active:opacity-80"
+            style={{ boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.12)' }}
+          >
+            <CalendarDays size={14} color="#FFFCFC" strokeWidth={1.75} />
+            <Text className="font-inter-semibold text-xs leading-4 text-snow">
+              {data.rosterStatus === null ? 'View Calendar' : 'Manage Calendar'}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {data ? (
@@ -61,6 +79,12 @@ export default function CreatorProfileScreen() {
           ))}
           <Reveal order={data.platforms.length + 1}>
             <CommercialsCard commercials={data.commercials} />
+          </Reveal>
+          <Reveal order={data.platforms.length + 2}>
+            <RecentCampaignsCard campaigns={data.recentCampaigns} />
+          </Reveal>
+          <Reveal order={data.platforms.length + 3}>
+            <ContactCard creator={data} />
           </Reveal>
         </ScrollView>
       ) : creator.isError ? (

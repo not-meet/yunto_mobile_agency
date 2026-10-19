@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  type DistributionChannel,
   getLeadDistribution,
   updateLeadDistribution,
   type UpdateLeadDistributionRequest,
@@ -23,8 +24,13 @@ export function useLeadDistribution() {
 export function useUpdateLeadDistribution() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (distribution: UpdateLeadDistributionRequest) =>
-      updateLeadDistribution(distribution),
+    mutationFn: ({
+      channel,
+      settings,
+    }: {
+      channel: DistributionChannel;
+      settings: UpdateLeadDistributionRequest;
+    }) => updateLeadDistribution(channel, settings),
     onSuccess: (distribution) => queryClient.setQueryData(LEAD_DISTRIBUTION_KEY, distribution),
     // Someone joined or left since the screen loaded: show the current team.
     onError: (error) => {

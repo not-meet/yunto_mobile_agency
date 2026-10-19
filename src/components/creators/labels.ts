@@ -7,8 +7,10 @@ import {
   YoutubeIcon,
 } from '@/components/leads/PlatformIcons';
 import type { PlatformIcon, TagTone } from '@/components/leads/labels';
+import type { ContentStatus, ContentType } from '@/services/creatorCalendarService';
 import type {
   AgeRange,
+  CampaignStatus,
   CreatorFilters,
   CreatorGender,
   CreatorPlatform,
@@ -85,6 +87,19 @@ export const SUGGESTION_LABELS: Record<RateSuggestion, string> = {
   UNKNOWN: 'None',
 };
 
+// A recent campaign's pill on the creator's profile.
+export const CAMPAIGN_STATUS_STYLES: Record<
+  CampaignStatus,
+  { label: string; color: string; background: string }
+> = {
+  active: { label: 'Active', color: '#3A5C7E', background: 'rgba(58, 92, 126, 0.1)' },
+  upcoming: { label: 'Upcoming', color: '#3A5C7E', background: 'rgba(58, 92, 126, 0.1)' },
+  completed: { label: 'Completed', color: '#3E7D52', background: 'rgba(62, 125, 82, 0.1)' },
+  cancelled: { label: 'Cancelled', color: '#B7791F', background: 'rgba(214, 158, 46, 0.12)' },
+  draft: { label: 'Draft', color: '#64748B', background: 'rgba(100, 116, 139, 0.1)' },
+  UNKNOWN: { label: 'In progress', color: '#64748B', background: 'rgba(100, 116, 139, 0.1)' },
+};
+
 export const CREATOR_PLATFORM_STYLES: Record<
   CreatorPlatform | typeof UNKNOWN,
   { label: string; icon: PlatformIcon | null; tone: TagTone; tint: string; color: string }
@@ -132,6 +147,60 @@ export const CREATOR_PLATFORM_STYLES: Record<
     tint: 'rgba(230, 230, 230, 0.4)',
     color: '#555555',
   },
+};
+
+// The creator calendar's day tags, as in yunto_mobile_app: a gradient and 2-letter platform.
+export const CALENDAR_TAGS: Record<
+  CreatorPlatform | typeof UNKNOWN,
+  { short: string; gradient: string }
+> = {
+  instagram: { short: 'IG', gradient: 'linear-gradient(111.25deg, #EC4899 0%, #D946EF 100%)' },
+  youtube: { short: 'YT', gradient: 'linear-gradient(110.93deg, #EF4444 0%, #DC2626 100%)' },
+  facebook: { short: 'FB', gradient: 'linear-gradient(108.68deg, #60A5FA 0%, #3A5C7E 100%)' },
+  linkedin: { short: 'IN', gradient: 'linear-gradient(108.68deg, #3B82F6 0%, #2563EB 100%)' },
+  tiktok: { short: 'TT', gradient: 'linear-gradient(108deg, #333333 0%, #141311 100%)' },
+  x: { short: 'X', gradient: 'linear-gradient(108deg, #555555 0%, #1A1A1A 100%)' },
+  UNKNOWN: { short: '··', gradient: 'linear-gradient(108deg, #A0A0A5 0%, #787486 100%)' },
+};
+
+// Brand collabs are tagged green on the calendar, whatever the platform.
+export const BRAND_TAG = {
+  color: '#059669',
+  gradient: 'linear-gradient(107.81deg, #10B981 0%, #059669 100%)',
+};
+
+// The calendar's platform filter; "all" shows everything.
+export type CalendarPlatformFilter = 'all' | CreatorPlatform;
+
+export const CALENDAR_FILTERS: { key: CalendarPlatformFilter; label: string }[] = [
+  { key: 'all', label: 'All Platforms' },
+  { key: 'instagram', label: 'Instagram' },
+  { key: 'youtube', label: 'YouTube' },
+  { key: 'linkedin', label: 'LinkedIn' },
+  { key: 'x', label: 'X' },
+  { key: 'facebook', label: 'Facebook' },
+];
+
+export const CONTENT_TYPE_LABELS: Record<ContentType | typeof UNKNOWN, string> = {
+  reel: 'Reel',
+  post: 'Post',
+  story: 'Story',
+  carousel: 'Carousel',
+  short: 'Short',
+  integrated: 'Integrated',
+  dedicated: 'Dedicated',
+  ugc: 'UGC',
+  UNKNOWN: 'Content',
+};
+
+export const CONTENT_STATUS_STYLES: Record<
+  ContentStatus,
+  { label: string; color: string; background: string }
+> = {
+  scheduled: { label: 'Scheduled', color: '#3E7D52', background: 'rgba(62, 125, 82, 0.1)' },
+  draft: { label: 'Draft', color: '#B7791F', background: 'rgba(214, 158, 46, 0.12)' },
+  posted: { label: 'Posted', color: '#5560CC', background: 'rgba(85, 96, 204, 0.1)' },
+  UNKNOWN: { label: 'Planned', color: '#64748B', background: 'rgba(100, 116, 139, 0.1)' },
 };
 
 // How many filters are on, for the Filter chip.
