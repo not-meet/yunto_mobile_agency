@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CircleUserRound, LogOut, Network, Plug, Users } from 'lucide-react-native';
+import { CircleUserRound, LogOut, Network, Users } from 'lucide-react-native';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,7 +14,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 // The signed-in member's profile, opened from their photo or name on home: who they are and
 // their agency's code and numbers, then where to manage their details, the team, lead
-// distribution and integrations, and Log Out.
+// distribution, and Log Out.
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const profile = useProfile();
@@ -83,6 +83,8 @@ export default function ProfileScreen() {
                 tint="#F5F0FA"
                 onPress={() => router.push('/profile/lead-distribution')}
               />
+              {/* Integrations is hidden for now. To bring it back, uncomment this and re-add
+                  `Plug` to the lucide import.
               <ActivityRow
                 title="Integrations"
                 subtitle="Facebook, Wordpress, Google Ads"
@@ -90,6 +92,7 @@ export default function ProfileScreen() {
                 tint="#FEF9EE"
                 onPress={() => router.push('/profile/integrations')}
               />
+              */}
             </View>
           </Reveal>
 

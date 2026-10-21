@@ -10,6 +10,8 @@ import { Button } from '@/components/common/Button';
 import { CreatorSearch } from '@/components/common/CreatorSearch';
 import { CreatorListCard } from '@/components/creators/CreatorListCard';
 import { CreatorListSkeleton } from '@/components/creators/CreatorListSkeleton';
+import { CreatorRequestSheet } from '@/components/creators/CreatorRequestSheet';
+import { CreatorsHeaderActions } from '@/components/creators/CreatorsHeaderActions';
 import { CreatorsToolbar } from '@/components/creators/CreatorsToolbar';
 import { FilterSheet } from '@/components/creators/FilterSheet';
 import { countFilters, pluralCreators, SCOPE_OPTIONS } from '@/components/creators/labels';
@@ -20,7 +22,7 @@ import {
   useShareCreatorsClearance,
 } from '@/components/creators/ShareCreatorsButton';
 import { SortSheet } from '@/components/creators/SortSheet';
-import { useCreators } from '@/hooks/useCreators';
+import { useCreatorRequests, useCreators } from '@/hooks/useCreators';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import {
@@ -33,7 +35,7 @@ import {
 
 // The agency's creators (or everyone on Yunto), opened from the bottom nav: search, filter and
 // sort them, pick some and share them with a brand. "Add Creator" opens the roster to invite
-// more.
+// more. The header holds creator requests and, on Our Creators, a listed-only switch.
 
 const STAGGER_MS = 60;
 const MAX_STAGGERED = 6;
@@ -49,13 +51,21 @@ export default function CreatorsScreen() {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<CreatorSort>('newest');
   const [filters, setFilters] = useState<CreatorFilters>(NO_CREATOR_FILTERS);
-  const [sheet, setSheet] = useState<'sort' | 'filter' | null>(null);
+  const [listedOnly, setListedOnly] = useState(false);
+  const [sheet, setSheet] = useState<'sort' | 'filter' | 'requests' | null>(null);
   // Kept whole, so picks survive a new search, filter or scope and can still be shared.
   const [picked, setPicked] = useState<Creator[]>([]);
   const [viewingSelected, setViewingSelected] = useState(false);
 
   const search = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
-  const creators = useCreators({ scope, query: search, sort, filters });
+  const creators = useCreators({
+    scope,
+    query: search,
+    sort,
+    filters,
+    listedOnly: scope === 'ours' && listedOnly,
+  });
+  const requests = useCreatorRequests();
   const pull = usePullToRefresh(creators);
   const { data } = creators;
 
@@ -87,6 +97,11 @@ export default function CreatorsScreen() {
             {data ? `Total: ${pluralCreators(data.total)}` : ' '}
           </Text>
         </View>
+        <CreatorsHeaderActions
+          requests={requests.data?.length ?? 0}
+          onRequests={() => setSheet('requests')}
+          listed={scope === 'ours' ? { value: listedOnly, onChange: setListedOnly } : undefined}
+        />
       </View>
 
       <View className="gap-4 pb-4">
@@ -162,7 +177,7 @@ export default function CreatorsScreen() {
                 <Users size={24} color="#9A8EA3" strokeWidth={1.67} />
               </View>
               <Text className="text-center font-inter-medium text-[15px] leading-5 text-muted">
-                {search || countFilters(filters) > 0
+                {search || listedOnly || countFilters(filters) > 0
                   ? 'No creators match your search or filters.'
                   : 'No creators here yet.'}
               </Text>
@@ -202,7 +217,9 @@ export default function CreatorsScreen() {
         onClose={() => setSheet(null)}
         value={filters}
         onApply={setFilters}
+        facets={data?.facets}
       />
+      <CreatorRequestSheet visible={sheet === 'requests'} onClose={() => setSheet(null)} />
     </View>
   );
 }

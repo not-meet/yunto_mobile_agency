@@ -8,17 +8,22 @@ import {
 } from '@/components/leads/PlatformIcons';
 import type { PlatformIcon, TagTone } from '@/components/leads/labels';
 import type { ContentStatus, ContentType } from '@/services/creatorCalendarService';
-import type {
-  AgeRange,
-  CampaignStatus,
-  CreatorFilters,
-  CreatorGender,
-  CreatorPlatform,
-  CreatorScope,
-  CreatorSort,
-  CreatorTier,
-  RateSuggestion,
+import {
+  type AgeRange,
+  type AvgViewsBand,
+  type CampaignStatus,
+  type CreatorDeliverable,
+  type CreatorFilters,
+  type CreatorGender,
+  type CreatorPlatform,
+  type CreatorService,
+  FOLLOWERS_MAX,
+  type CreatorScope,
+  type CreatorSort,
+  type CreatorTier,
+  type RateSuggestion,
 } from '@/services/creatorsService';
+import { formatCount } from '@/utils/format';
 import type { UNKNOWN } from '@/utils/schema';
 
 // Display copy and option lists for the creators screens.
@@ -35,7 +40,7 @@ export const SORT_OPTIONS: { key: CreatorSort; label: string }[] = [
   { key: 'followers', label: 'Followers – High to Low' },
 ];
 
-// The filter sheet's niche chips, as designed. Creators' niches are one of these.
+// The invite sheet's niches, as designed. Creators' niches are one of these.
 export const NICHE_OPTIONS = [
   'Travel',
   'Artists & Films',
@@ -47,16 +52,41 @@ export const NICHE_OPTIONS = [
   'Other',
 ];
 
-// Stops on the follower-range slider; the last one (null) is "any".
-export const FOLLOWER_STOPS: (number | null)[] = [
-  10_000,
-  50_000,
-  100_000,
-  500_000,
-  1_000_000,
-  5_000_000,
-  null,
-];
+// The Filter sheet's options and copy, as on yunto-private.
+
+export const SERVICE_LABELS: Record<CreatorService, string> = { paid: 'Paid', barter: 'Barter' };
+
+export const DELIVERABLE_LABELS: Record<CreatorDeliverable, string> = {
+  reel: '+ Reel',
+  story: '+ Story',
+  post: '+ Post',
+  short: '+ Short',
+  long_video: '+ Long Video',
+  community_post: '+ Community Post',
+};
+
+// With a platform picked, only its deliverables are offered.
+export const DELIVERABLES_BY_PLATFORM: Partial<Record<CreatorPlatform, CreatorDeliverable[]>> = {
+  instagram: ['reel', 'story', 'post'],
+  youtube: ['short', 'long_video', 'community_post'],
+};
+
+export const AVG_VIEWS_LABELS: Record<AvgViewsBand, string> = {
+  '0-50k': '0 – 50K',
+  '50k-100k': '50K – 100K',
+  '100k-250k': '100K – 250K',
+  '250k-500k': '250K – 500K',
+  '500k-1m': '500K – 1M',
+};
+
+// Offered when no creator has a language set yet.
+export const FALLBACK_LANGUAGES = ['English', 'Hindi', 'Tamil'];
+
+// "1 – 1M" at the bottom, "1M+" at the top.
+export function followersRangeLabel(min: number): string {
+  if (min >= FOLLOWERS_MAX) return '1M+';
+  return `${min <= 0 ? '1' : formatCount(min)} – 1M`;
+}
 
 export const AGE_RANGE_LABELS: Record<AgeRange, string> = {
   '13-18': '13 - 18',
@@ -69,7 +99,8 @@ export const AGE_RANGE_LABELS: Record<AgeRange, string> = {
 export const GENDER_LABELS: Record<CreatorGender, string> = {
   female: 'Female',
   male: 'Male',
-  other: 'Others',
+  lgbtq: 'LGBTQ+',
+  other: 'Other',
 };
 
 export const TIER_LABELS: Record<CreatorTier, string> = {
@@ -205,13 +236,20 @@ export const CONTENT_STATUS_STYLES: Record<
 
 // How many filters are on, for the Filter chip.
 export function countFilters(filters: CreatorFilters): number {
+  const set = (value: unknown) => (value === null ? 0 : 1);
   return (
-    filters.niches.length +
-    (filters.maxFollowers === null ? 0 : 1) +
-    filters.tags.length +
-    (filters.ageRange === null ? 0 : 1) +
+    set(filters.service) +
+    set(filters.barterBudget) +
+    set(filters.platform) +
+    filters.deliverables.length +
+    set(filters.niche) +
+    (filters.minFollowers > 0 ? 1 : 0) +
+    set(filters.location) +
     filters.genders.length +
-    filters.locations.length
+    set(filters.avgViews) +
+    set(filters.ageRange) +
+    set(filters.language) +
+    set(filters.budgetMax)
   );
 }
 

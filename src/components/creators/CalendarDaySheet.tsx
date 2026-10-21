@@ -13,8 +13,9 @@ import type { CalendarPost } from '@/services/creatorCalendarService';
 import { daysFromToday, fromDateKey, longDate } from '@/utils/dates';
 
 // Opened by tapping a day on the creator calendar (as in yunto_mobile_app): everything planned
-// for it with its platform, kind and status. When the calendar can be edited, a piece that isn't
-// posted yet can be taken off, and today or later can have something new added.
+// for it with its platform, kind and status; tapping a piece opens it in the content editor. When
+// the calendar can be edited, a piece that isn't posted yet can be taken off, and today or later
+// can have something new written.
 
 interface CalendarDaySheetProps {
   // "YYYY-MM-DD", or null when closed.
@@ -24,18 +25,27 @@ interface CalendarDaySheetProps {
   onClose: () => void;
   onDelete: (post: CalendarPost) => void;
   onAdd: (date: string) => void;
+  onOpen: (post: CalendarPost) => void;
 }
 
-function DayPost({ post, onDelete }: { post: CalendarPost; onDelete: (() => void) | null }) {
+interface DayPostProps {
+  post: CalendarPost;
+  onOpen: () => void;
+  onDelete: (() => void) | null;
+}
+
+function DayPost({ post, onOpen, onDelete }: DayPostProps) {
   const platform = CREATOR_PLATFORM_STYLES[post.platform];
   const status = CONTENT_STATUS_STYLES[post.status];
   const Icon = platform.icon;
 
   return (
-    <View
-      accessible={onDelete === null}
+    <Pressable
+      onPress={onOpen}
+      accessibilityRole="button"
       accessibilityLabel={`${post.title}, ${platform.label} ${CONTENT_TYPE_LABELS[post.contentType]}, ${status.label}${post.brand ? `, ${post.brand} collab` : ''}${post.ai ? ', AI planned' : ''}`}
-      className="flex-row items-center gap-3 rounded-[20px] bg-[#F8F8F8] p-3"
+      accessibilityHint="Opens it in the editor"
+      className="flex-row items-center gap-3 rounded-[20px] bg-[#F8F8F8] p-3 active:opacity-80"
     >
       <View className="h-10 w-10 items-center justify-center rounded-xl bg-white">
         {Icon ? <Icon size={18} color={platform.color} /> : null}
@@ -86,7 +96,7 @@ function DayPost({ post, onDelete }: { post: CalendarPost; onDelete: (() => void
           <Trash2 size={14} color="#E11D48" strokeWidth={1.75} />
         </Pressable>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -97,6 +107,7 @@ export function CalendarDaySheet({
   onClose,
   onDelete,
   onAdd,
+  onOpen,
 }: CalendarDaySheetProps) {
   const day = date ? fromDateKey(date) : null;
   const upcoming = day ? daysFromToday(day) >= 0 : false;
@@ -113,6 +124,7 @@ export function CalendarDaySheet({
             <DayPost
               key={post.id}
               post={post}
+              onOpen={() => onOpen(post)}
               onDelete={canEdit && post.status !== 'posted' ? () => onDelete(post) : null}
             />
           ))

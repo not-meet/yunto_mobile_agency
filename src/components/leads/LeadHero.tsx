@@ -4,12 +4,13 @@ import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 
 import { callNumber, sendEmail, textNumber } from '@/components/leads/contact';
 import { DEAL_LABELS, STATUS_STYLES } from '@/components/leads/labels';
+import { LeadIntentControl } from '@/components/leads/LeadIntentControl';
 import { usePressScale } from '@/hooks/usePressScale';
 import type { LeadDetails } from '@/services/leadsService';
 import { formatInr } from '@/utils/format';
 
 // Top card of a lead, tinted by its status: who, which campaign, the budget, deal type and status
-// badges, and quick contacts. The status badge pops in again when it changes (e.g. converted).
+// badges with the intent bar, and quick contacts. The status badge pops in again when it changes (e.g. converted).
 
 function ContactButton({
   label,
@@ -76,11 +77,12 @@ export function LeadHero({ lead }: { lead: LeadDetails }) {
         </Text>
       </View>
 
-      <View className="flex-row gap-2">
+      <View className="flex-row items-center gap-2">
         <Badge label={DEAL_LABELS[lead.dealType]} />
         <Animated.View key={lead.status} entering={reduceMotion ? undefined : FadeIn.duration(300)}>
           <Badge label={status.label} />
         </Animated.View>
+        <LeadIntentControl leadId={lead.id} intent={lead.intent} />
       </View>
 
       <View className="flex-row gap-3 pt-3">

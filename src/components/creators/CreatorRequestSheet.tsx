@@ -1,0 +1,129 @@
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+
+import { Avatar } from '@/components/common/Avatar';
+import { BottomSheet } from '@/components/common/BottomSheet';
+import { Switch } from '@/components/common/Switch';
+import {
+  useAcceptCreatorRequest,
+  useCreatorRequests,
+  useDeclineCreatorRequest,
+  useSetCreatorListed,
+} from '@/hooks/useCreators';
+import type { CreatorRequest } from '@/services/creatorsService';
+import { showToast } from '@/utils/notifications';
+
+// Creators asking to join the agency, as on yunto-private: list them in the global pool, confirm
+// them onto the roster, or delete the request.
+
+function RequestRow({ request }: { request: CreatorRequest }) {
+  const accept = useAcceptCreatorRequest();
+  const decline = useDeclineCreatorRequest();
+  const setListed = useSetCreatorListed();
+  const busy = accept.isPending || decline.isPending;
+
+  return (
+    <View className="gap-2.5">
+      <View className="flex-row items-center gap-3 rounded-[28px] border border-[#EAEAEA] bg-[#F8F8F8] px-2.5 py-2.5">
+        <Avatar name={request.name} url={request.avatarUrl} size={42} />
+        <View className="flex-1">
+          <Text numberOfLines={1} className="font-inter-semibold text-sm leading-[17px] text-black">
+            {request.name}
+          </Text>
+          <Text numberOfLines={1} className="font-inter text-[11px] leading-[14px] text-black/70">
+            {request.handle}
+          </Text>
+          <Text numberOfLines={1} className="font-inter text-[11px] leading-[14px] text-black/50">
+            {request.email ?? '—'}
+          </Text>
+        </View>
+      </View>
+      <View className="flex-row items-center gap-2">
+        <View className="h-10 flex-1 flex-row items-center justify-between rounded-full border border-[#EAEAEA] pl-4 pr-1.5">
+          <Text className="font-inter-medium text-xs leading-4 text-black">List Creator</Text>
+          <Switch
+            value={request.listed}
+            disabled={setListed.isPending}
+            label={`List ${request.name}`}
+            onValueChange={(listed) =>
+              setListed.mutate(
+                { id: request.id, listed },
+                { onError: () => showToast('Couldn’t update the listing. Please try again.') },
+              )
+            }
+          />
+        </View>
+        <Pressable
+          onPress={() =>
+            accept.mutate(request.id, {
+              onSuccess: () => showToast(`${request.name} joined your creators`),
+              onError: () => showToast('Couldn’t confirm this request. Please try again.'),
+            })
+          }
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={`Confirm ${request.name}`}
+          className="h-10 w-[82px] items-center justify-center rounded-full border border-[#A0A7FB] active:opacity-70"
+        >
+          {accept.isPending ? (
+            <ActivityIndicator size="small" color="#4150F7" />
+          ) : (
+            <Text className="font-inter-medium text-xs leading-4 text-[#4150F7]">Confirm</Text>
+          )}
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            decline.mutate(request.id, {
+              onError: () => showToast('Couldn’t delete this request. Please try again.'),
+            })
+          }
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${request.name}’s request`}
+          className="h-10 w-[76px] items-center justify-center rounded-full border border-[#EAEAEA] active:opacity-70"
+        >
+          {decline.isPending ? (
+            <ActivityIndicator size="small" color="#141311" />
+          ) : (
+            <Text className="font-inter-medium text-xs leading-4 text-black">Delete</Text>
+          )}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+interface CreatorRequestSheetProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+export function CreatorRequestSheet({ visible, onClose }: CreatorRequestSheetProps) {
+  const requests = useCreatorRequests();
+  const { data } = requests;
+
+  return (
+    <BottomSheet visible={visible} onClose={onClose} title="Creator Request">
+      <ScrollView
+        className="mt-5 shrink grow-0"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ gap: 20, paddingBottom: 4 }}
+      >
+        {data ? (
+          data.length > 0 ? (
+            data.map((request) => <RequestRow key={request.id} request={request} />)
+          ) : (
+            <Text className="py-8 text-center font-inter-medium text-sm leading-5 text-muted">
+              No pending creator requests.
+            </Text>
+          )
+        ) : requests.isError ? (
+          <Text className="py-8 text-center font-inter-medium text-sm leading-5 text-muted">
+            We couldn’t load creator requests.
+          </Text>
+        ) : (
+          <ActivityIndicator className="py-8" color="#8C8A84" />
+        )}
+      </ScrollView>
+    </BottomSheet>
+  );
+}

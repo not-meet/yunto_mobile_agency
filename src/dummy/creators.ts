@@ -2,7 +2,7 @@ import { ApiError } from '@/utils/api';
 
 // TEMPORARY fixtures + handlers for the creators screens. Delete with the folder.
 //
-// Held in memory only: invited creators are gone after a restart. Times are fixed at launch.
+// Held in memory only: invited creators, listings and answered requests are gone after a restart. Times are fixed at launch.
 
 const LAUNCHED_AT = Date.now();
 const HOUR_MS = 60 * 60_000;
@@ -10,7 +10,7 @@ const hoursAgo = (hours: number) => new Date(LAUNCHED_AT - hours * HOUR_MS).toIS
 const avatar = (seed: string) => `https://picsum.photos/seed/yunto-roster-${seed}/96/96`;
 
 type MockPlatform = 'instagram' | 'youtube' | 'facebook' | 'linkedin' | 'tiktok' | 'x';
-type MockGender = 'female' | 'male' | 'other';
+type MockGender = 'female' | 'male' | 'lgbtq' | 'other';
 type MockAgeRange = '13-18' | '19-25' | '26-35' | '36-50' | '50+';
 type MockSort = 'newest' | 'engagement' | 'views' | 'followers';
 
@@ -35,10 +35,13 @@ interface MockCreator {
   state: string | null;
   gender: MockGender | null;
   ageRange: MockAgeRange | null;
+  language: string | null;
   tags: string[];
   // Rupees for a reel; stories and posts are priced off it.
   reelRate: number | null;
   rosterStatus: 'active' | 'invited' | null;
+  // In the global pool, for other agencies to see.
+  listed: boolean;
   addedAt: string;
 }
 
@@ -63,9 +66,11 @@ const CREATORS: MockCreator[] = [
     state: 'MH',
     gender: 'female',
     ageRange: '19-25',
+    language: 'Hindi',
     tags: ['Couple'],
     reelRate: 1000,
     rosterStatus: 'active',
+    listed: true,
     addedAt: hoursAgo(2),
   },
   {
@@ -88,9 +93,11 @@ const CREATORS: MockCreator[] = [
     state: 'DL',
     gender: 'female',
     ageRange: '19-25',
+    language: 'Hindi',
     tags: [],
     reelRate: 18_000,
     rosterStatus: 'invited',
+    listed: false,
     addedAt: hoursAgo(6),
   },
   {
@@ -113,9 +120,11 @@ const CREATORS: MockCreator[] = [
     state: 'MH',
     gender: 'male',
     ageRange: '26-35',
+    language: 'English',
     tags: ['Couple'],
     reelRate: 45_000,
     rosterStatus: 'active',
+    listed: true,
     addedAt: hoursAgo(20),
   },
   {
@@ -138,9 +147,11 @@ const CREATORS: MockCreator[] = [
     state: 'KA',
     gender: 'male',
     ageRange: '26-35',
+    language: 'English',
     tags: [],
     reelRate: 90_000,
     rosterStatus: 'active',
+    listed: true,
     addedAt: hoursAgo(44),
   },
   {
@@ -163,9 +174,11 @@ const CREATORS: MockCreator[] = [
     state: 'TN',
     gender: 'female',
     ageRange: '26-35',
+    language: 'Tamil',
     tags: ['Family'],
     reelRate: 15_000,
     rosterStatus: 'active',
+    listed: true,
     addedAt: hoursAgo(70),
   },
   {
@@ -188,9 +201,11 @@ const CREATORS: MockCreator[] = [
     state: 'MH',
     gender: 'male',
     ageRange: '19-25',
+    language: 'Hindi',
     tags: ['Student'],
     reelRate: 24_000,
     rosterStatus: 'invited',
+    listed: false,
     addedAt: hoursAgo(96),
   },
   {
@@ -213,9 +228,11 @@ const CREATORS: MockCreator[] = [
     state: 'WB',
     gender: 'female',
     ageRange: '26-35',
+    language: 'English',
     tags: [],
     reelRate: 36_000,
     rosterStatus: 'active',
+    listed: true,
     addedAt: hoursAgo(120),
   },
   {
@@ -238,9 +255,11 @@ const CREATORS: MockCreator[] = [
     state: 'DL',
     gender: 'male',
     ageRange: '26-35',
+    language: 'English',
     tags: [],
     reelRate: 30_000,
     rosterStatus: 'active',
+    listed: false,
     addedAt: hoursAgo(150),
   },
   {
@@ -263,9 +282,11 @@ const CREATORS: MockCreator[] = [
     state: 'RJ',
     gender: 'female',
     ageRange: '19-25',
+    language: 'Hindi',
     tags: ['Student'],
     reelRate: 6000,
     rosterStatus: 'invited',
+    listed: false,
     addedAt: hoursAgo(190),
   },
   {
@@ -288,9 +309,11 @@ const CREATORS: MockCreator[] = [
     state: 'DL',
     gender: 'male',
     ageRange: '36-50',
+    language: 'Hindi',
     tags: [],
     reelRate: 14_000,
     rosterStatus: 'active',
+    listed: true,
     addedAt: hoursAgo(240),
   },
   // On Yunto, not on the agency's roster.
@@ -314,9 +337,11 @@ const CREATORS: MockCreator[] = [
     state: 'DL',
     gender: 'female',
     ageRange: '19-25',
+    language: 'Hindi',
     tags: [],
     reelRate: 22_000,
     rosterStatus: null,
+    listed: true,
     addedAt: hoursAgo(12),
   },
   {
@@ -339,9 +364,11 @@ const CREATORS: MockCreator[] = [
     state: 'KL',
     gender: 'male',
     ageRange: '19-25',
+    language: 'Malayalam',
     tags: [],
     reelRate: 5000,
     rosterStatus: null,
+    listed: true,
     addedAt: hoursAgo(30),
   },
   {
@@ -364,9 +391,11 @@ const CREATORS: MockCreator[] = [
     state: 'GA',
     gender: 'other',
     ageRange: '26-35',
+    language: 'English',
     tags: ['Couple'],
     reelRate: 40_000,
     rosterStatus: null,
+    listed: true,
     addedAt: hoursAgo(60),
   },
   {
@@ -389,9 +418,11 @@ const CREATORS: MockCreator[] = [
     state: 'UP',
     gender: 'female',
     ageRange: '13-18',
+    language: 'Hindi',
     tags: ['Student'],
     reelRate: 2500,
     rosterStatus: null,
+    listed: true,
     addedAt: hoursAgo(100),
   },
   {
@@ -414,9 +445,11 @@ const CREATORS: MockCreator[] = [
     state: 'KA',
     gender: 'male',
     ageRange: '36-50',
+    language: 'English',
     tags: [],
     reelRate: null,
     rosterStatus: null,
+    listed: true,
     addedAt: hoursAgo(200),
   },
   {
@@ -439,10 +472,70 @@ const CREATORS: MockCreator[] = [
     state: 'TS',
     gender: 'female',
     ageRange: '36-50',
+    language: 'English',
     tags: ['Family'],
     reelRate: 11_000,
     rosterStatus: null,
+    listed: true,
     addedAt: hoursAgo(260),
+  },
+];
+
+// Asking to join the agency, newest first. Confirmed ones move onto the roster.
+const REQUESTS: MockCreator[] = [
+  {
+    id: 'kriti',
+    name: 'Kriti Malhotra',
+    handle: '@kriti.wanders',
+    avatarUrl: avatar('kriti'),
+    platforms: ['instagram'],
+    niche: 'Travel',
+    categories: ['Solo Travel'],
+    followers: 186_000,
+    avgViews: 88_000,
+    engagementRate: 5.6,
+    leads: 0,
+    vsAverage: 24,
+    rateSuggestion: 'increase',
+    phone: '+919812340021',
+    email: 'kriti@wanderwithkriti.in',
+    city: 'Delhi',
+    state: 'DL',
+    gender: 'female',
+    ageRange: '19-25',
+    language: 'Hindi',
+    tags: [],
+    reelRate: 9000,
+    rosterStatus: null,
+    listed: false,
+    addedAt: hoursAgo(3),
+  },
+  {
+    id: 'dev',
+    name: 'Dev Malik',
+    handle: '@devcooks',
+    avatarUrl: avatar('dev'),
+    platforms: ['youtube', 'instagram'],
+    niche: 'Health & Fitness',
+    categories: ['Food'],
+    followers: 342_000,
+    avgViews: 150_000,
+    engagementRate: 4.1,
+    leads: 0,
+    vsAverage: 6,
+    rateSuggestion: 'hold',
+    phone: null,
+    email: null,
+    city: 'Mumbai',
+    state: 'MH',
+    gender: 'male',
+    ageRange: '26-35',
+    language: 'English',
+    tags: [],
+    reelRate: 16_000,
+    rosterStatus: null,
+    listed: true,
+    addedAt: hoursAgo(28),
   },
 ];
 
@@ -496,6 +589,7 @@ function toListItem(creator: MockCreator) {
     phone,
     profileUrl: `https://stellartalent.com/${slug(name)}`,
     rosterStatus,
+    listed: creator.listed,
   };
 }
 
@@ -579,21 +673,67 @@ function toDetails(creator: MockCreator) {
   };
 }
 
+type MockViewsBand = '0-50k' | '50k-100k' | '100k-250k' | '250k-500k' | '500k-1m';
+
 interface MockSearch {
   scope: 'ours' | 'all';
   query: string;
   sort: MockSort;
   filters: {
-    niches: string[];
-    maxFollowers: number | null;
-    tags: string[];
-    ageRange: MockAgeRange | null;
+    service: 'paid' | 'barter' | null;
+    barterBudget: number | null;
+    platform: MockPlatform | null;
+    niche: string | null;
+    minFollowers: number;
+    location: string | null;
     genders: MockGender[];
-    locations: string[];
+    avgViews: MockViewsBand | null;
+    ageRange: MockAgeRange | null;
+    language: string | null;
+    budgetMax: number | null;
   };
+  listedOnly: boolean;
 }
 
-const lower = (values: string[]) => values.map((v) => v.toLowerCase());
+const VIEWS_BANDS: Record<MockViewsBand, [number, number]> = {
+  '0-50k': [0, 50_000],
+  '50k-100k': [50_000, 100_000],
+  '100k-250k': [100_000, 250_000],
+  '250k-500k': [250_000, 500_000],
+  '500k-1m': [500_000, 1_000_000],
+};
+
+// The agency takes barter on these platforms, for no less than a quarter of the reel rate.
+const BARTER_PLATFORMS: MockPlatform[] = ['instagram', 'youtube'];
+const barterMin = (c: MockCreator) =>
+  c.reelRate === null ? null : Math.round((c.reelRate * 0.25) / 500) * 500;
+
+const unique = <T>(values: (T | null)[]) => [...new Set(values.filter((v): v is T => v !== null))];
+
+function matches(c: MockCreator, { filters, listedOnly, scope }: MockSearch, query: string) {
+  const views = filters.avgViews ? VIEWS_BANDS[filters.avgViews] : null;
+  const floor = barterMin(c);
+  return (
+    (!query ||
+      [c.name, c.handle, c.niche, c.city ?? ''].some((f) => f.toLowerCase().includes(query))) &&
+    (filters.niche === null || c.niche === filters.niche) &&
+    (filters.genders.length === 0 || (c.gender !== null && filters.genders.includes(c.gender))) &&
+    (scope === 'all' || !listedOnly || c.listed) &&
+    (filters.location === null || c.city === filters.location) &&
+    c.followers >= filters.minFollowers &&
+    (filters.platform === null || c.platforms.includes(filters.platform)) &&
+    (filters.language === null || c.language === filters.language) &&
+    (filters.ageRange === null || c.ageRange === filters.ageRange) &&
+    (views === null || (c.avgViews >= views[0] && c.avgViews <= views[1])) &&
+    (filters.service !== 'paid' || c.reelRate !== null) &&
+    (filters.service !== 'barter' || c.platforms.some((p) => BARTER_PLATFORMS.includes(p))) &&
+    (filters.service !== 'barter' ||
+      filters.barterBudget === null ||
+      floor === null ||
+      floor <= filters.barterBudget) &&
+    (filters.budgetMax === null || c.reelRate === null || c.reelRate <= filters.budgetMax)
+  );
+}
 
 const SORTERS: Record<MockSort, (a: MockCreator, b: MockCreator) => number> = {
   newest: (a, b) => Date.parse(b.addedAt) - Date.parse(a.addedAt),
@@ -605,34 +745,33 @@ const SORTERS: Record<MockSort, (a: MockCreator, b: MockCreator) => number> = {
 // POST /creators/search
 export function mockSearchCreators(payload: MockSearch | undefined) {
   if (!payload) throw new ApiError('Invalid search', 400, { message: 'Invalid search' });
-  const { scope, sort, filters } = payload;
+  const { scope, sort } = payload;
   const query = payload.query.trim().toLowerCase();
   const inScope = CREATORS.filter((c) => scope === 'all' || c.rosterStatus !== null);
-  const niches = lower(filters.niches);
-  const tags = lower(filters.tags);
-  const locations = lower(filters.locations);
-
-  const creators = inScope.filter(
-    (c) =>
-      (!query ||
-        [c.name, c.handle, c.niche].some((field) => field.toLowerCase().includes(query))) &&
-      (niches.length === 0 || niches.includes(c.niche.toLowerCase())) &&
-      (filters.maxFollowers === null || c.followers <= filters.maxFollowers) &&
-      (tags.length === 0 || c.tags.some((tag) => tags.includes(tag.toLowerCase()))) &&
-      (filters.ageRange === null || c.ageRange === filters.ageRange) &&
-      (filters.genders.length === 0 || (c.gender !== null && filters.genders.includes(c.gender))) &&
-      (locations.length === 0 || (c.city !== null && locations.includes(c.city.toLowerCase()))),
-  );
+  const creators = inScope.filter((c) => matches(c, payload, query));
 
   return {
     creators: [...creators].sort(SORTERS[sort]).map(toListItem),
     total: inScope.length,
+    // As on yunto-private: up to 6 niches and 8 locations.
+    facets: {
+      niches: unique(inScope.map((c) => c.niche)).slice(0, 6),
+      locations: unique(inScope.map((c) => c.city)).slice(0, 8),
+      platforms: unique(inScope.flatMap((c) => c.platforms)),
+      languages: unique(inScope.map((c) => c.language)),
+      ageRanges: unique(inScope.map((c) => c.ageRange)),
+    },
   };
 }
 
 // GET /creators/:id
 export function mockGetCreator(id: string) {
   return { creator: toDetails(findCreator(id)) };
+}
+
+// For the leads mock: a roster creator being added to a lead.
+export function mockFindCreator(id: string) {
+  return toListItem(findCreator(id));
 }
 
 interface MockNewCreator {
@@ -643,6 +782,7 @@ interface MockNewCreator {
   location: string | null;
   gender: MockGender | null;
   ageRange: MockAgeRange | null;
+  language: string | null;
   platforms: MockPlatform[];
   followers: number | null;
   avgViews: number | null;
@@ -676,17 +816,70 @@ export function mockCreateCreator(payload: MockNewCreator | undefined) {
     state: state || null,
     gender: payload.gender,
     ageRange: payload.ageRange,
+    language: payload.language,
     tags: [],
     reelRate: payload.ratePerPost,
     rosterStatus: 'invited',
+    listed: false,
     addedAt: new Date().toISOString(),
   };
   CREATORS.unshift(creator);
   return { creator: toDetails(creator) };
 }
 
-// For the calendar mock: where they post, and whether the agency can plan for them.
+// For the calendar and content mocks: where they post, whether the agency can plan for them,
+// and their niche and handle.
 export function mockCalendarCreator(id: string) {
   const creator = findCreator(id);
-  return { platforms: creator.platforms, onRoster: creator.rosterStatus !== null };
+  return {
+    platforms: creator.platforms,
+    onRoster: creator.rosterStatus !== null,
+    niche: creator.niche,
+    handle: creator.handle,
+  };
+}
+
+// GET /creators/requests
+export function mockGetCreatorRequests() {
+  return {
+    requests: REQUESTS.map(({ id, name, handle, avatarUrl, email, listed }) => ({
+      id,
+      name,
+      handle,
+      avatarUrl,
+      email,
+      listed,
+    })),
+  };
+}
+
+function takeRequest(id: string): MockCreator {
+  const index = REQUESTS.findIndex((c) => c.id === id);
+  const [creator] = index < 0 ? [] : REQUESTS.splice(index, 1);
+  if (!creator) throw new ApiError('Request not found', 404, { message: 'Request not found' });
+  return creator;
+}
+
+// POST /creators/requests/:id/accept. They join the roster, at the top of "Newest Added".
+export function mockAcceptCreatorRequest(id: string) {
+  const creator = takeRequest(id);
+  CREATORS.unshift({ ...creator, rosterStatus: 'active', addedAt: new Date().toISOString() });
+  return { ok: true as const };
+}
+
+// POST /creators/requests/:id/decline
+export function mockDeclineCreatorRequest(id: string) {
+  takeRequest(id);
+  return { ok: true as const };
+}
+
+// PUT /creators/:id/listed. Roster creators, or those asking to join.
+export function mockSetCreatorListed(id: string, payload: { listed: boolean } | undefined) {
+  if (!payload) throw new ApiError('Invalid listing', 400, { message: 'Invalid listing' });
+  const creator =
+    REQUESTS.find((c) => c.id === id) ??
+    CREATORS.find((c) => c.id === id && c.rosterStatus !== null);
+  if (!creator) throw new ApiError('Creator not found', 404, { message: 'Creator not found' });
+  creator.listed = payload.listed;
+  return { ok: true as const };
 }

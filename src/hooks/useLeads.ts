@@ -10,6 +10,8 @@ import {
   getLeads,
   type Lead,
   type LeadDetails,
+  type LeadIntent,
+  setLeadIntent,
 } from '@/services/leadsService';
 import { newIdempotencyKey } from '@/utils/api';
 import { STALE_TIME } from '@/utils/queryCache';
@@ -64,14 +66,44 @@ export function useConvertLead(id: string) {
   });
 }
 
-export function useDeleteLead(id: string) {
+// Takes the lead's id per call, so the list can delete any of its cards.
+export function useDeleteLead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => deleteLead(id),
+    mutationFn: (id: string) => deleteLead(id),
     // The detail stays cached until it's collected: dropping it while the screen is still up
     // would refetch a lead that no longer exists.
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.setQueryData<Lead[]>(LEADS_KEY, (leads) => leads?.filter((l) => l.id !== id));
+      void queryClient.invalidateQueries({ queryKey: HOME_KEY });
+    },
+  });
+}
+
+// Shown straight away; put back if the server says no.
+export function useSetLeadIntent(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (intent: LeadIntent) => setLeadIntent(id, intent),
+    onMutate: async (intent) => {
+      await queryClient.cancelQueries({ queryKey: leadKey(id), exact: true });
+      const previous = queryClient.getQueryData<LeadDetails>(leadKey(id));
+      queryClient.setQueryData<LeadDetails>(leadKey(id), (lead) =>
+        lead ? { ...lead, intent } : lead,
+      );
+      return { previous };
+    },
+    onError: (_, __, context) => {
+      if (context?.previous) queryClient.setQueryData(leadKey(id), context.previous);
+    },
+    onSuccess: (lead) => {
+      queryClient.setQueryData(leadKey(id), lead);
+      // A new lead moves under "Contacted".
+      queryClient.setQueryData<Lead[]>(LEADS_KEY, (leads) =>
+        leads?.map((l) => (l.id === id ? { ...l, status: lead.status } : l)),
+      );
+      // The change is logged on the timeline.
+      void queryClient.invalidateQueries({ queryKey: [...leadKey(id), 'activity'] });
       void queryClient.invalidateQueries({ queryKey: HOME_KEY });
     },
   });

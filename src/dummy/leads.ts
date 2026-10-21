@@ -1,9 +1,10 @@
+import { mockFindCreator } from '@/dummy/creators';
 import { ApiError } from '@/utils/api';
 import { addDays, fromDateKey, toDateKey } from '@/utils/dates';
 
 // TEMPORARY fixtures + handlers for the leads screens. Delete with the folder.
 //
-// Held in memory only: deletes, conversions, links, notes and follow-ups are gone after a
+// Held in memory only: deletes, intents, conversions, links, notes and follow-ups are gone after a
 // restart. Times are fixed at launch, so they don't move on each refetch.
 
 const LAUNCHED_AT = Date.now();
@@ -35,6 +36,9 @@ interface MockLead {
   ownerIndex: number | null;
   message: string | null;
   addOns: MockRole[];
+  intent?: 'low' | 'medium' | 'high' | null;
+  // Set when the lead is deleted; it's kept, just no longer shown.
+  deletedAt?: string;
 }
 
 const OWNERS = [
@@ -269,7 +273,7 @@ const AGENCY_CUT = 0.2;
 const links = new Map<string, { id: string; url: string; addedAt: string }[]>();
 
 function findLead(id: string): MockLead {
-  const lead = LEADS.find((l) => l.id === id);
+  const lead = LEADS.find((l) => l.id === id && !l.deletedAt);
   if (!lead) throw new ApiError('Lead not found', 404, { message: 'Lead not found' });
   return lead;
 }
@@ -320,6 +324,7 @@ function toDetails(lead: MockLead) {
     })),
     links: links.get(lead.id) ?? [],
     addOns: lead.addOns,
+    intent: lead.intent ?? null,
     payment: {
       amount: lead.budget,
       agencyFee: fee,
@@ -330,7 +335,9 @@ function toDetails(lead: MockLead) {
 
 // GET /leads
 export function mockGetLeads() {
-  const leads = [...LEADS].sort((a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt));
+  const leads = LEADS.filter((l) => !l.deletedAt).sort(
+    (a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt),
+  );
   return { leads: leads.map(toListItem) };
 }
 
@@ -369,6 +376,7 @@ interface MockNewLead {
   phone: string | null;
   budget: number | null;
   agencyFee?: number | null;
+  productShipment?: 'creator_buys' | 'brand_ships' | null;
   influencers: number | null;
   deliverables: string | null;
 }
@@ -414,18 +422,37 @@ export function mockCreateLead(payload: MockNewLead | undefined) {
       phone: payload.phone,
       budget: payload.budget,
       agencyFee: payload.agencyFee ?? null,
+      productShipment: payload.productShipment ?? null,
       influencers: payload.influencers,
       deliverables: payload.deliverables,
     },
   };
 }
 
-// DELETE /leads/:id
+// DELETE /leads/:id. Marks the lead deleted rather than dropping it.
 export function mockDeleteLead(id: string) {
-  const index = LEADS.findIndex((l) => l.id === id);
-  if (index < 0) throw new ApiError('Lead not found', 404, { message: 'Lead not found' });
-  LEADS.splice(index, 1);
+  findLead(id).deletedAt = new Date().toISOString();
   return { ok: true as const };
+}
+
+// PUT /leads/:id/intent. Judging a new lead's intent means it's been contacted.
+export function mockSetLeadIntent(
+  id: string,
+  payload: { intent: 'low' | 'medium' | 'high' } | undefined,
+) {
+  if (!payload) throw new ApiError('Invalid intent', 400, { message: 'Invalid intent' });
+  const lead = findLead(id);
+  if (lead.intent !== payload.intent) {
+    lead.intent = payload.intent;
+    if (lead.status === 'new') lead.status = 'contacted';
+    getActivityRecord(id).activity.unshift({
+      id: `lact_${Date.now()}`,
+      type: 'intent',
+      title: `Intent → ${payload.intent}`,
+      at: new Date().toISOString(),
+    });
+  }
+  return { lead: toDetails(lead) };
 }
 
 export function mockAddDeliverableLink(id: string, payload: { url: string } | undefined) {
@@ -444,7 +471,7 @@ interface MockActivity {
   notes: { id: string; text: string; createdAt: string }[];
   activity: {
     id: string;
-    type: 'reminder' | 'follow-up' | 'call' | 'contacted' | 'converted';
+    type: 'reminder' | 'follow-up' | 'call' | 'contacted' | 'converted' | 'intent';
     title: string;
     at: string;
   }[];
@@ -566,8 +593,9 @@ export function mockScheduleFollowUp(
   return { followUp: nextFollowUp(record) ?? payload, activity };
 }
 
-// GET /leads/:id/creators(/:creatorId), POST /leads/:id/creators/status and /remove. Every lead
-// starts from the same five of the pool, picked by its place in the list.
+// GET /leads/:id/creators(/:creatorId), POST /leads/:id/creators (add), /status and /remove.
+// New leads start with none; every other lead starts from the same five of the pool, picked by
+// its place in the list.
 
 type MockCreatorStatus = 'pending' | 'shortlisted' | 'done';
 type MockCreatorActivityType = 'added' | 'brief' | 'message' | 'shortlisted';
@@ -577,7 +605,7 @@ interface MockCreator {
   name: string;
   handle: string;
   avatarUrl: string | null;
-  platform: 'instagram' | 'youtube';
+  platform: 'instagram' | 'youtube' | 'UNKNOWN';
   niche: string;
   status: MockCreatorStatus;
   followers: number;
@@ -763,9 +791,12 @@ function getCreatorRecords(leadId: string): MockCreator[] {
   let records = creatorRecords.get(leadId);
   if (!records) {
     const start = index % CREATOR_POOL.length;
-    records = [...CREATOR_POOL.slice(start), ...CREATOR_POOL.slice(0, start)]
-      .slice(0, CREATORS_PER_LEAD)
-      .map((base) => ({ ...base, activity: seedCreatorActivity(base) }));
+    records =
+      LEADS[index]?.status === 'new'
+        ? []
+        : [...CREATOR_POOL.slice(start), ...CREATOR_POOL.slice(0, start)]
+            .slice(0, CREATORS_PER_LEAD)
+            .map((base) => ({ ...base, activity: seedCreatorActivity(base) }));
     creatorRecords.set(leadId, records);
   }
   return records;
@@ -831,6 +862,48 @@ export function mockGetLeadCreators(leadId: string) {
 
 export function mockGetLeadCreator(leadId: string, creatorId: string) {
   return { creator: toCreatorDetails(findLead(leadId), findCreator(leadId, creatorId)) };
+}
+
+// Roster creators join at the end as pending. Adding one already on the lead is a no-op
+// (idempotent). Returns the lead's creators as they are now.
+export function mockAddLeadCreators(leadId: string, payload: { creatorIds: string[] } | undefined) {
+  if (!payload) throw new ApiError('Invalid update', 400, { message: 'Invalid update' });
+  const records = getCreatorRecords(leadId);
+  for (const creatorId of payload.creatorIds) {
+    if (records.some((c) => c.id === creatorId)) continue;
+    const roster = mockFindCreator(creatorId);
+    records.push({
+      id: roster.id,
+      name: roster.name,
+      handle: roster.handle,
+      avatarUrl: roster.avatarUrl,
+      // Leads only badge these two.
+      platform:
+        roster.platform === 'instagram' || roster.platform === 'youtube'
+          ? roster.platform
+          : 'UNKNOWN',
+      niche: roster.niche,
+      status: 'pending',
+      followers: roster.followers,
+      avgViews: roster.avgViews,
+      engagementRate: roster.engagementRate,
+      location: roster.location,
+      budget: null,
+      followersGrowth: null,
+      engagementChange: null,
+      delivered: 0,
+      activity: [
+        {
+          id: `${roster.id}_act_${Date.now()}`,
+          type: 'added',
+          title: 'Added to lead',
+          detail: 'Added by you',
+          at: new Date().toISOString(),
+        },
+      ],
+    });
+  }
+  return { creators: records.map(toCreatorListItem) };
 }
 
 const CREATOR_STATUS_TITLES: Record<MockCreatorStatus, string> = {

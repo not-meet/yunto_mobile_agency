@@ -18,9 +18,13 @@ import {
   getTeam,
   getTeams,
   type MemberDetails,
+  moveCreators,
+  type MoveCreatorsRequest,
   type Permissions,
   removeFromTeam,
   type Team,
+  unassignCreators,
+  type UnassignCreatorsRequest,
   updateMemberPermissions,
   updateTeam,
   type UpdateTeamRequest,
@@ -106,6 +110,30 @@ export function useAssignCreators() {
     onSuccess: (assignment, { memberId }) => {
       queryClient.setQueryData(CREATOR_ASSIGNMENT_KEY, assignment);
       void queryClient.invalidateQueries({ queryKey: memberCreatorsKey(memberId) });
+    },
+  });
+}
+
+export function useUnassignCreators() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (unassignment: UnassignCreatorsRequest) => unassignCreators(unassignment),
+    onSuccess: (assignment, { memberId }) => {
+      queryClient.setQueryData(CREATOR_ASSIGNMENT_KEY, assignment);
+      void queryClient.invalidateQueries({ queryKey: memberCreatorsKey(memberId) });
+    },
+  });
+}
+
+export function useMoveCreators() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (move: MoveCreatorsRequest) => moveCreators(move),
+    onSuccess: (assignment, { fromMemberId, toMemberId }) => {
+      queryClient.setQueryData(CREATOR_ASSIGNMENT_KEY, assignment);
+      for (const id of [fromMemberId, toMemberId]) {
+        void queryClient.invalidateQueries({ queryKey: memberCreatorsKey(id) });
+      }
     },
   });
 }

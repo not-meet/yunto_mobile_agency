@@ -5,6 +5,7 @@ import {
   mockAddMember,
   mockAssignCreators,
   mockCreateTeam,
+  mockMoveCreators,
   mockGetCreatorAssignment,
   mockDeleteTeam,
   mockGetMember,
@@ -15,10 +16,12 @@ import {
   mockGetTeam,
   mockGetTeams,
   mockRemoveFromTeam,
+  mockUnassignCreators,
   mockUpdateMemberPermissions,
   mockUpdateTeam,
 } from '@/dummy/team';
 import { roleSchema } from '@/services/authService';
+import { creatorPlatformSchema } from '@/services/creatorsService';
 import { EMAIL_MAX } from '@/services/leadsService';
 import { assignAsSchema } from '@/services/profileService';
 import { tolerantEnum } from '@/utils/schema';
@@ -273,6 +276,8 @@ const memberDetailsSchema = memberSchema.extend({
   joinedAt: dateKeySchema,
   birthDate: dateKeySchema.nullable(),
   employmentType: employmentTypeSchema,
+  // e.g. "55678"; null until HR gives them one.
+  employeeCode: z.string().min(1).nullable(),
   // e.g. "Aryan Yadav"; null for whoever's at the top.
   reportingManager: z.string().min(1).nullable(),
   // The team they're shown under; null if they're in none.
@@ -354,6 +359,15 @@ const assignableCreatorSchema = z.object({
   avatarUrl: z.url().nullable(),
   // e.g. "Travel".
   niche: z.string().min(1),
+  // Where they're biggest; badged on their photo. "UNKNOWN" shows without a badge.
+  platform: tolerantEnum(creatorPlatformSchema.options),
+  followers: countSchema,
+  avgViews: countSchema,
+  // Percent, e.g. 4.2.
+  engagementRate: z.number().nonnegative(),
+  // Leads they've been pitched on.
+  leads: countSchema,
+  phone: z.string().regex(PHONE_PATTERN).nullable(),
 });
 export type AssignableCreator = z.infer<typeof assignableCreatorSchema>;
 
@@ -407,9 +421,54 @@ export async function assignCreators(
   });
 }
 
+// Taking creators off a teammate (Remove on their profile, or undoing an assign): they go back
+// to unassigned. Only creators that teammate looks after move.
+export const unassignCreatorsRequest = z.object({
+  creatorIds: z.array(idSchema).min(1, 'Pick at least one creator'),
+  memberId: idSchema,
+});
+export type UnassignCreatorsRequest = z.infer<typeof unassignCreatorsRequest>;
+
+export async function unassignCreators(
+  unassignment: UnassignCreatorsRequest,
+): Promise<CreatorAssignment> {
+  return mockApiRequest({
+    method: 'POST',
+    path: '/creators/assignment/unassign',
+    request: unassignCreatorsRequest,
+    body: unassignment,
+    response: creatorAssignmentResponse,
+    mock: mockUnassignCreators,
+  });
+}
+
+// Handing creators from one teammate to another. Only creators `fromMemberId` looks after move.
+export const moveCreatorsRequest = z
+  .object({
+    creatorIds: z.array(idSchema).min(1, 'Pick at least one creator'),
+    fromMemberId: idSchema,
+    toMemberId: z.string({ error: 'Pick who looks after them' }).pipe(idSchema),
+  })
+  .refine((move) => move.fromMemberId !== move.toMemberId, {
+    message: 'Pick someone else',
+    path: ['toMemberId'],
+  });
+export type MoveCreatorsRequest = z.infer<typeof moveCreatorsRequest>;
+
+export async function moveCreators(move: MoveCreatorsRequest): Promise<CreatorAssignment> {
+  return mockApiRequest({
+    method: 'POST',
+    path: '/creators/assignment/move',
+    request: moveCreatorsRequest,
+    body: move,
+    response: creatorAssignmentResponse,
+    mock: mockMoveCreators,
+  });
+}
+
 const memberCreatorsResponse = z.object({ creators: z.array(assignableCreatorSchema) });
 
-// The creators a member is the POC of.
+// The creators a member is the POC of, most recently assigned first.
 export async function getMemberCreators(id: string): Promise<AssignableCreator[]> {
   const { creators } = await mockApiRequest({
     method: 'GET',

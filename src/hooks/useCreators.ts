@@ -1,11 +1,16 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  acceptCreatorRequest,
   createCreator,
   type CreateCreatorRequest,
+  type CreatorRequest,
+  declineCreatorRequest,
   getCreator,
+  getCreatorRequests,
   searchCreators,
   type SearchCreatorsRequest,
+  setCreatorListed,
 } from '@/services/creatorsService';
 import { STALE_TIME } from '@/utils/queryCache';
 
@@ -13,6 +18,7 @@ import { STALE_TIME } from '@/utils/queryCache';
 const CREATORS_KEY = ['creators'];
 const searchKey = (search: SearchCreatorsRequest) => [...CREATORS_KEY, 'search', search];
 const creatorKey = (id: string) => [...CREATORS_KEY, id];
+const REQUESTS_KEY = [...CREATORS_KEY, 'requests'];
 
 // Keeps showing the last results while a new search or filter loads, so the list doesn't blank
 // out between keystrokes.
@@ -46,6 +52,44 @@ export function useCreateCreator() {
     }) => createCreator(creator, idempotencyKey),
     onSuccess: (created) => {
       queryClient.setQueryData(creatorKey(created.id), created);
+      void queryClient.invalidateQueries({ queryKey: [...CREATORS_KEY, 'search'] });
+    },
+  });
+}
+
+export function useCreatorRequests() {
+  return useQuery({
+    queryKey: REQUESTS_KEY,
+    queryFn: getCreatorRequests,
+    staleTime: STALE_TIME.live,
+  });
+}
+
+// Confirming or deleting a request takes it off the sheet; a confirmed creator joins the roster.
+function useAnswerCreatorRequest(answer: (id: string) => Promise<void>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: answer,
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<CreatorRequest[]>(REQUESTS_KEY, (requests) =>
+        requests?.filter((r) => r.id !== id),
+      );
+      void queryClient.invalidateQueries({ queryKey: [...CREATORS_KEY, 'search'] });
+    },
+  });
+}
+
+export const useAcceptCreatorRequest = () => useAnswerCreatorRequest(acceptCreatorRequest);
+export const useDeclineCreatorRequest = () => useAnswerCreatorRequest(declineCreatorRequest);
+
+export function useSetCreatorListed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, listed }: { id: string; listed: boolean }) => setCreatorListed(id, listed),
+    onSuccess: (_, { id, listed }) => {
+      queryClient.setQueryData<CreatorRequest[]>(REQUESTS_KEY, (requests) =>
+        requests?.map((r) => (r.id === id ? { ...r, listed } : r)),
+      );
       void queryClient.invalidateQueries({ queryKey: [...CREATORS_KEY, 'search'] });
     },
   });

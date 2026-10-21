@@ -7,14 +7,15 @@ import {
   mockDeleteLead,
   mockGetLead,
   mockGetLeads,
+  mockSetLeadIntent,
 } from '@/dummy/leads';
 import { mockApiRequest } from '@/dummy/mockApi';
 import { talentRoleSchema } from '@/services/talentService';
 import { tolerantEnum } from '@/utils/schema';
 
 // Brand enquiries the agency is working: the leads list, one lead's details, adding a lead by
-// hand, and what can be done to a lead (convert it into a campaign, delete it, attach
-// deliverable links).
+// hand, and what can be done to a lead (convert it into a campaign, delete it, set its intent,
+// attach deliverable links).
 
 const idSchema = z.string().regex(/^[A-Za-z0-9_-]+$/);
 
@@ -31,9 +32,17 @@ export type DeliverableType = z.infer<typeof deliverableTypeSchema>;
 const dealTypeSchema = z.enum(['paid', 'barter']).catch('paid');
 export type DealType = z.infer<typeof dealTypeSchema>;
 
+// How a barter's product reaches the creator: bought by the creator, or shipped by the brand.
+export const productShipmentSchema = z.enum(['creator_buys', 'brand_ships']);
+export type ProductShipment = z.infer<typeof productShipmentSchema>;
+
 // E.164, e.g. "+919812345678".
 const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 const phoneSchema = z.string().regex(PHONE_PATTERN);
+
+// How likely the brand is to close, as judged by the agency.
+export const leadIntentSchema = z.enum(['low', 'medium', 'high']);
+export type LeadIntent = z.infer<typeof leadIntentSchema>;
 
 const leadSchema = z.object({
   id: idSchema,
@@ -127,6 +136,8 @@ const leadDetailsSchema = leadSchema.extend({
   // Extra talent the brand wants booked with the deal.
   addOns: z.array(talentRoleSchema),
   payment: paymentSchema,
+  // null until someone has judged it. One the app doesn't know reads as not set.
+  intent: leadIntentSchema.nullable().catch(null),
 });
 export type LeadDetails = z.infer<typeof leadDetailsSchema>;
 
@@ -155,6 +166,7 @@ export async function convertLead(id: string, idempotencyKey: string): Promise<L
   return lead;
 }
 
+// Marks the lead deleted: it drops out of the list, with its notes and activity kept.
 export async function deleteLead(id: string): Promise<void> {
   await mockApiRequest({
     method: 'DELETE',
@@ -162,6 +174,21 @@ export async function deleteLead(id: string): Promise<void> {
     response: z.object({ ok: z.literal(true) }),
     mock: () => mockDeleteLead(idSchema.parse(id)),
   });
+}
+
+const setIntentRequest = z.object({ intent: leadIntentSchema });
+
+// Also moves a new lead to contacted. Returns the lead as it is now.
+export async function setLeadIntent(id: string, intent: LeadIntent): Promise<LeadDetails> {
+  const { lead } = await mockApiRequest({
+    method: 'PUT',
+    path: `${leadPath(id)}/intent`,
+    request: setIntentRequest,
+    body: { intent },
+    response: leadResponse,
+    mock: (payload) => mockSetLeadIntent(idSchema.parse(id), payload),
+  });
+  return lead;
 }
 
 const addLinkRequest = z.object({ url: deliverableLinkUrlSchema });
@@ -234,6 +261,7 @@ export const createLeadRequest = z.discriminatedUnion('campaignType', [
     ...newLeadFields,
     // The agency's cut of a barter, paid in cash.
     agencyFee: amountSchema.nullable(),
+    productShipment: productShipmentSchema.nullable(),
   }),
   z.object({ campaignType: z.literal('paid'), ...newLeadFields }),
 ]);
@@ -255,6 +283,8 @@ const createdLeadSchema = z.object({
   budget: z.number().nonnegative().nullable(),
   // Barter only; null on a paid lead.
   agencyFee: z.number().nonnegative().nullable(),
+  // Barter only; null on a paid lead or when not given. "UNKNOWN" for a newer option.
+  productShipment: tolerantEnum(productShipmentSchema.options).nullable(),
   influencers: z.number().int().positive().nullable(),
   deliverables: z.string().min(1).nullable(),
 });

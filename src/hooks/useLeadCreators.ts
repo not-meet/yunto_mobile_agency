@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  addLeadCreators,
   getLeadCreator,
   getLeadCreators,
   type LeadCreator,
@@ -29,6 +30,16 @@ export function useLeadCreator(leadId: string, creatorId: string) {
     queryKey: creatorKey(leadId, creatorId),
     queryFn: () => getLeadCreator(leadId, creatorId),
     staleTime: STALE_TIME.owned,
+  });
+}
+
+export function useAddLeadCreators(leadId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (creatorIds: string[]) => addLeadCreators(leadId, creatorIds, newIdempotencyKey()),
+    onSuccess: (creators) => {
+      queryClient.setQueryData<LeadCreator[]>(creatorsKey(leadId), creators);
+    },
   });
 }
 

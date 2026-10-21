@@ -19,7 +19,13 @@ import { showToast } from '@/utils/notifications';
 // whether they've joined yet, and "Add Creator" to invite someone new. Once the invite is sent
 // their profile opens.
 
-const ROSTER = { scope: 'ours', query: '', sort: 'newest', filters: NO_CREATOR_FILTERS } as const;
+const ROSTER = {
+  scope: 'ours',
+  query: '',
+  sort: 'newest',
+  filters: NO_CREATOR_FILTERS,
+  listedOnly: false,
+} as const;
 
 export default function AddCreatorsScreen() {
   const insets = useSafeAreaInsets();

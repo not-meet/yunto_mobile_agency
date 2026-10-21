@@ -3,7 +3,12 @@ import { Text, View } from 'react-native';
 import Animated, { useReducedMotion, ZoomIn } from 'react-native-reanimated';
 
 import { Reveal } from '@/components/common/Reveal';
-import { DEAL_LABELS, nicheTone, PLATFORM_STYLES } from '@/components/leads/labels';
+import {
+  DEAL_LABELS,
+  nicheTone,
+  PLATFORM_STYLES,
+  PRODUCT_SHIPMENT_LABELS,
+} from '@/components/leads/labels';
 import { TagChip } from '@/components/leads/TagChip';
 import type { CreatedLead } from '@/services/leadsService';
 import { mediumDate } from '@/utils/dates';
@@ -88,7 +93,18 @@ export function LeadAdded({ lead }: { lead: CreatedLead }) {
     { label: 'Contact Person', value: lead.contactName },
     { label: 'Phone Number', value: lead.phone ? formatPhone(lead.phone) : EMPTY },
     { label: barter ? 'Barter Value' : 'Campaign Budget', value: rupees(lead.budget) },
-    ...(barter ? [{ label: 'Agency Fee', value: rupees(lead.agencyFee) }] : []),
+    ...(barter
+      ? [
+          { label: 'Agency Fee', value: rupees(lead.agencyFee) },
+          {
+            label: 'Product Shipment',
+            value:
+              lead.productShipment && lead.productShipment !== 'UNKNOWN'
+                ? PRODUCT_SHIPMENT_LABELS[lead.productShipment]
+                : EMPTY,
+          },
+        ]
+      : []),
     { label: 'Influencers', value: lead.influencers === null ? EMPTY : String(lead.influencers) },
     { label: 'Deliverables', value: lead.deliverables ?? EMPTY },
     { label: 'Submission Date', value: mediumDate(new Date(lead.createdAt)) },

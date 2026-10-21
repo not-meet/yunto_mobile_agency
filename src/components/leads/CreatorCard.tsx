@@ -1,4 +1,4 @@
-import { Check, Eye, Mail } from 'lucide-react-native';
+import { Eye, Mail } from 'lucide-react-native';
 import { Fragment } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -9,8 +9,8 @@ import type { LeadCreator } from '@/services/leadCreatorsService';
 import { formatCount } from '@/utils/format';
 import { showToast } from '@/utils/notifications';
 
-// One creator pitched for a lead: who they are, their reach, and a check to pick them for the
-// actions bar. Tap the card (or View) to open their details.
+// One creator pitched for a lead: who they are and their reach. Tap the card (or View) to open
+// their details.
 
 function CardButton({
   label,
@@ -40,12 +40,10 @@ function CardButton({
 interface CreatorCardProps {
   creator: LeadCreator;
   tint: string;
-  selected: boolean;
-  onToggle: () => void;
   onOpen: () => void;
 }
 
-export function CreatorCard({ creator, tint, selected, onToggle, onOpen }: CreatorCardProps) {
+export function CreatorCard({ creator, tint, onOpen }: CreatorCardProps) {
   const press = usePressScale(0.98);
 
   const stats = [
@@ -97,21 +95,6 @@ export function CreatorCard({ creator, tint, selected, onToggle, onOpen }: Creat
               </View>
             </View>
           </View>
-          <Pressable
-            onPress={onToggle}
-            hitSlop={8}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: selected }}
-            accessibilityLabel={`Select ${creator.name}`}
-            className={`h-[30px] w-[30px] items-center justify-center rounded-full active:opacity-70 ${
-              selected ? 'bg-[#141311]' : 'border border-[rgba(232,229,223,0.3)] bg-white/80'
-            }`}
-            style={{
-              boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1)',
-            }}
-          >
-            {selected ? <Check size={13} color="#FAF7F2" strokeWidth={2} /> : null}
-          </Pressable>
         </View>
 
         <View className="flex-row items-center gap-2 rounded-[14px] bg-white/50 p-2">

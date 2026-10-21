@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Eye, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -9,7 +9,6 @@ import { Button } from '@/components/common/Button';
 import { ConfirmSheet } from '@/components/common/ConfirmSheet';
 import { Reveal } from '@/components/common/Reveal';
 import { SegmentedFilter } from '@/components/common/SegmentedFilter';
-import { AddContentSheet } from '@/components/creators/AddContentSheet';
 import { CalendarDaySheet } from '@/components/creators/CalendarDaySheet';
 import { CalendarSummary } from '@/components/creators/CalendarSummary';
 import { CreatorCalendar } from '@/components/creators/CreatorCalendar';
@@ -24,8 +23,8 @@ import { showToast } from '@/utils/notifications';
 
 // One creator's content calendar, opened from "Manage Calendar" / "View Calendar" on their
 // profile with the creator's `id` (as on the web). The month's pieces by platform, a tap on a day
-// lists them, and for the agency's own creators a piece can be added or taken off. Creators off
-// the roster are view only.
+// lists them and opens one in the content editor, and for the agency's own creators a piece can
+// be written there or taken off. Creators off the roster are view only.
 
 export default function CreatorCalendarScreen() {
   const insets = useSafeAreaInsets();
@@ -35,7 +34,6 @@ export default function CreatorCalendarScreen() {
   const [month, setMonth] = useState(() => addMonths(todayDate(), 0));
   const [filter, setFilter] = useState<CalendarPlatformFilter>('all');
   const [selected, setSelected] = useState<string | null>(null);
-  const [adding, setAdding] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<CalendarPost | null>(null);
 
   const calendar = useCreatorCalendar(id, monthKey(month));
@@ -48,9 +46,12 @@ export default function CreatorCalendarScreen() {
   const postsByDay = new Map<string, CalendarPost[]>();
   for (const post of posts) postsByDay.set(post.date, [...(postsByDay.get(post.date) ?? []), post]);
 
-  const openAdd = (date: string) => {
+  const openEditor = (date: string, post?: CalendarPost) => {
     setSelected(null);
-    setAdding(date);
+    router.push({
+      pathname: '/creators/content',
+      params: post ? { id, date, post: post.id } : { id, date },
+    });
   };
 
   const confirmDelete = () => {
@@ -147,7 +148,7 @@ export default function CreatorCalendarScreen() {
                 loading={!data || calendar.isPlaceholderData}
                 canAdd={canEdit}
                 onSelectDay={setSelected}
-                onAddToday={() => openAdd(todayKey())}
+                onAddToday={() => openEditor(todayKey())}
               />
             </Reveal>
           </>
@@ -159,18 +160,13 @@ export default function CreatorCalendarScreen() {
         posts={selected ? (postsByDay.get(selected) ?? []) : []}
         canEdit={canEdit}
         onClose={() => setSelected(null)}
-        onAdd={openAdd}
+        onAdd={openEditor}
+        onOpen={(post) => openEditor(post.date, post)}
         onDelete={(post) => {
           setSelected(null);
           remove.reset();
           setDeleting(post);
         }}
-      />
-      <AddContentSheet
-        key={adding ?? 'closed'}
-        creatorId={id}
-        date={adding}
-        onClose={() => setAdding(null)}
       />
       <ConfirmSheet
         visible={deleting !== null}

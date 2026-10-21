@@ -1,17 +1,29 @@
 import {
   Briefcase,
+  ChevronDown,
   ClipboardList,
   Globe,
   type LucideIcon,
   Mail,
+  Package,
   Phone,
   UserRound,
 } from 'lucide-react-native';
-import { useState } from 'react';
-import { Text, TextInput, type TextInputProps, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  Pressable,
+  Text,
+  TextInput,
+  type TextInputProps,
+  useWindowDimensions,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 
+import { DropdownMenu } from '@/components/common/DropdownMenu';
 import { FieldLabel } from '@/components/leads/FieldLabel';
+import { PRODUCT_SHIPMENT_LABELS } from '@/components/leads/labels';
 import {
   AMOUNT_MAX,
   BRAND_NAME_MAX,
@@ -21,6 +33,7 @@ import {
   DELIVERABLES_MAX,
   INFLUENCERS_MAX,
   type LeadPlatform,
+  type ProductShipment,
 } from '@/services/leadsService';
 import { PLACEHOLDER_COLOR } from '@/utils/constants';
 import {
@@ -49,6 +62,8 @@ export interface LeadDraft {
   // Digits only. The barter value on a barter.
   budget: string;
   agencyFee: string;
+  // Barter only; null until picked.
+  productShipment: ProductShipment | null;
   influencers: string;
   deliverables: string;
 }
@@ -64,6 +79,7 @@ export const EMPTY_LEAD: LeadDraft = {
   phone: '',
   budget: '',
   agencyFee: '',
+  productShipment: null,
   influencers: '',
   deliverables: '',
 };
@@ -92,7 +108,12 @@ export function toCreateLeadRequest(draft: LeadDraft): CreateLeadRequest {
     deliverables: optional(draft.deliverables),
   };
   return draft.campaignType === 'barter'
-    ? { campaignType: 'barter', ...fields, agencyFee: optionalNumber(draft.agencyFee) }
+    ? {
+        campaignType: 'barter',
+        ...fields,
+        agencyFee: optionalNumber(draft.agencyFee),
+        productShipment: draft.productShipment,
+      }
     : { campaignType: 'paid', ...fields };
 }
 
@@ -157,6 +178,61 @@ function Field({
           {...input}
         />
       </Animated.View>
+    </View>
+  );
+}
+
+const SHIPMENT_OPTIONS = (Object.keys(PRODUCT_SHIPMENT_LABELS) as ProductShipment[]).map(
+  (value) => ({ value, label: PRODUCT_SHIPMENT_LABELS[value] }),
+);
+
+// A Field-styled box that opens a dropdown of the shipment options just under it.
+function ShipmentSelect({
+  value,
+  onChange,
+}: {
+  value: ProductShipment | null;
+  onChange: (next: ProductShipment) => void;
+}) {
+  const { width } = useWindowDimensions();
+  const box = useRef<View>(null);
+  const [menu, setMenu] = useState<ViewStyle | null>(null);
+
+  const openMenu = () =>
+    box.current?.measureInWindow((x, y, w, h) =>
+      setMenu({ top: y + h + 8, left: x, right: Math.max(16, width - x - w) }),
+    );
+
+  return (
+    <View className="gap-2">
+      <FieldLabel>Product Shipment</FieldLabel>
+      <Pressable
+        ref={box}
+        onPress={openMenu}
+        accessibilityRole="button"
+        accessibilityLabel={`Product shipment, ${value ? PRODUCT_SHIPMENT_LABELS[value] : 'not set'}`}
+        accessibilityState={{ expanded: menu !== null }}
+        className="flex-row items-center gap-3 rounded-[18px] border border-[#EFEFEF] bg-[#F8F9FA] px-4 py-3.5 active:opacity-80"
+      >
+        <Package size={15} color="#BBBBBB" strokeWidth={1.67} />
+        <Text
+          className={`flex-1 font-inter-medium text-sm leading-[21px] ${
+            value ? 'text-[#222222]' : 'text-[#BBBBBB]'
+          }`}
+        >
+          {value ? PRODUCT_SHIPMENT_LABELS[value] : 'Select an option'}
+        </Text>
+        <ChevronDown size={15} color="#BBBBBB" strokeWidth={1.67} />
+      </Pressable>
+      <DropdownMenu
+        visible={menu !== null}
+        onClose={() => setMenu(null)}
+        options={SHIPMENT_OPTIONS}
+        selected={value ?? undefined}
+        onSelect={onChange}
+        position={menu ?? {}}
+        label="Product shipment"
+      />
     </View>
   );
 }
@@ -247,6 +323,12 @@ export function AddLeadForm({ value, onChange }: AddLeadFormProps) {
             onChangeText={(next) => set('agencyFee', sanitizeDigits(next, AMOUNT_DIGITS))}
             placeholder="0"
             keyboardType="number-pad"
+          />
+        ) : null}
+        {barter ? (
+          <ShipmentSelect
+            value={value.productShipment}
+            onChange={(next) => set('productShipment', next)}
           />
         ) : null}
       </Animated.View>

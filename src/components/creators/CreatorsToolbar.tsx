@@ -4,10 +4,18 @@ import Animated from 'react-native-reanimated';
 
 import { usePressScale } from '@/hooks/usePressScale';
 
-// The row under the Creators title: add a creator, filter and sort the list.
+// The row under the Creators title: add a creator (when `onAdd` is given), filter and sort the
+// list.
 
-// The dark "Add Creator" pill; also heads the roster on the Add Creators screen.
-export function AddCreatorButton({ onPress }: { onPress: () => void }) {
+// The dark "Add Creator" pill; also heads the roster on the Add Creators screen and a lead's
+// creators.
+export function AddCreatorButton({
+  onPress,
+  label = 'Add Creator',
+}: {
+  onPress: () => void;
+  label?: string;
+}) {
   const press = usePressScale(0.95);
   return (
     <Animated.View style={press.style}>
@@ -15,12 +23,12 @@ export function AddCreatorButton({ onPress }: { onPress: () => void }) {
         {...press.handlers}
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel="Add Creator"
+        accessibilityLabel={label}
         className="h-8 flex-row items-center gap-1.5 rounded-full bg-[#141311] px-4"
         style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.12)' }}
       >
         <Plus size={12} color="#FAF7F2" strokeWidth={2} />
-        <Text className="font-inter-bold text-xs leading-4 text-[#FAF7F2]">Add Creator</Text>
+        <Text className="font-inter-bold text-xs leading-4 text-[#FAF7F2]">{label}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -58,7 +66,7 @@ function ToolChip({
 }
 
 interface CreatorsToolbarProps {
-  onAdd: () => void;
+  onAdd?: () => void;
   onFilter: () => void;
   onSort: () => void;
   filterCount: number;
@@ -67,7 +75,7 @@ interface CreatorsToolbarProps {
 export function CreatorsToolbar({ onAdd, onFilter, onSort, filterCount }: CreatorsToolbarProps) {
   return (
     <View className="flex-row items-center gap-2 px-4">
-      <AddCreatorButton onPress={onAdd} />
+      {onAdd ? <AddCreatorButton onPress={onAdd} /> : null}
       <ToolChip label="Filter" icon={SlidersHorizontal} onPress={onFilter} badge={filterCount} />
       <ToolChip label="Sort" icon={ArrowUpDown} onPress={onSort} />
     </View>

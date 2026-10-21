@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  mockAddLeadCreators,
   mockGetLeadCreator,
   mockGetLeadCreators,
   mockRemoveLeadCreators,
@@ -10,8 +11,8 @@ import { mockApiRequest } from '@/dummy/mockApi';
 import { talentRoleSchema } from '@/services/talentService';
 import { tolerantEnum } from '@/utils/schema';
 
-// The creators pitched for a lead: the list, one creator's details, and moving them along
-// (shortlisted, done) or dropping them from the lead.
+// The creators pitched for a lead: the list, one creator's details, adding roster creators,
+// and moving them along (shortlisted, done) or dropping them from the lead.
 
 const idSchema = z.string().regex(/^[A-Za-z0-9_-]+$/);
 
@@ -127,6 +128,26 @@ export async function getLeadCreator(
 }
 
 const creatorIdsSchema = z.array(idSchema).min(1);
+
+const addRequest = z.object({ creatorIds: creatorIdsSchema });
+
+// Adds roster creators as pending. Returns the lead's creators as they are now.
+export async function addLeadCreators(
+  leadId: string,
+  creatorIds: string[],
+  idempotencyKey: string,
+): Promise<LeadCreator[]> {
+  const { creators } = await mockApiRequest({
+    method: 'POST',
+    path: creatorsPath(leadId),
+    request: addRequest,
+    body: { creatorIds },
+    response: z.object({ creators: z.array(leadCreatorSchema) }),
+    idempotencyKey,
+    mock: (payload) => mockAddLeadCreators(idSchema.parse(leadId), payload),
+  });
+  return creators;
+}
 
 const setStatusRequest = z.object({
   creatorIds: creatorIdsSchema,

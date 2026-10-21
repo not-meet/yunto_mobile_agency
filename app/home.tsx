@@ -47,6 +47,7 @@ const SECTIONS_BY_ROLE: Record<Role, SectionKey[]> = {
     'performance',
     'revenue',
     'topCreators',
+    'liveCampaigns',
     'services',
     'reminders',
     'activity',

@@ -5,6 +5,7 @@ import {
   CircleCheck,
   CircleDot,
   type LucideIcon,
+  Gauge,
   Phone,
 } from 'lucide-react-native';
 import { Text, View } from 'react-native';
@@ -46,6 +47,7 @@ const TYPE_STYLES: Record<
     tint: '#EDE4FF',
     border: 'rgba(237, 228, 255, 0.9)',
   },
+  intent: { icon: Gauge, color: '#B7791F', tint: '#FDF1DC', border: 'rgba(253, 241, 220, 0.9)' },
   // Any other kind of entry the server sends.
   UNKNOWN: {
     icon: CircleDot,

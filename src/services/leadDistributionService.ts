@@ -7,7 +7,8 @@ import { assignAsSchema } from '@/services/profileService';
 import { tolerantEnum } from '@/utils/schema';
 
 // How new leads and campaigns are handed to the team, each set on its own: to anyone at random,
-// to everyone at once, or to each person in the sequence in turn. Priority recipients get
+// to everyone at once (leads), to whoever won the lead (campaigns), or to each person in the
+// sequence in turn. Priority recipients get
 // priority ones first, in their own order, before the sequence.
 
 const idSchema = z.string().regex(/^[A-Za-z0-9_-]+$/);
@@ -15,8 +16,19 @@ const idSchema = z.string().regex(/^[A-Za-z0-9_-]+$/);
 export const distributionChannelSchema = z.enum(['leads', 'campaigns']);
 export type DistributionChannel = z.infer<typeof distributionChannelSchema>;
 
-export const distributionModeSchema = z.enum(['random', 'broadcast', 'round-robin']);
+export const distributionModeSchema = z.enum([
+  'random',
+  'broadcast',
+  'campaign-won',
+  'round-robin',
+]);
 export type DistributionMode = z.infer<typeof distributionModeSchema>;
+
+// The modes each channel offers, in the order they're listed.
+export const CHANNEL_MODES: Record<DistributionChannel, DistributionMode[]> = {
+  leads: ['random', 'broadcast', 'round-robin'],
+  campaigns: ['random', 'campaign-won', 'round-robin'],
+};
 
 const distributionSettingsSchema = z.object({
   mode: tolerantEnum(distributionModeSchema.options),

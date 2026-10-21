@@ -1,45 +1,42 @@
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { FOLLOWER_STOPS } from '@/components/creators/labels';
-import { formatCount } from '@/utils/format';
+import { followersRangeLabel } from '@/components/creators/labels';
+import { FOLLOWERS_MAX } from '@/services/creatorsService';
 
-// Most followers a creator can have, as a slider that snaps to FOLLOWER_STOPS. The last stop
-// is "any". Drag the thumb or tap the track.
+// Fewest followers a creator can have, from 0 up to 1M in steps of 10K. Drag the thumb or tap the
+// track.
 
 const THUMB = 25;
-const LAST = FOLLOWER_STOPS.length - 1;
-
-export const followerRangeLabel = (max: number | null) =>
-  max === null ? 'Any' : `0 - ${formatCount(max)}`;
+const STEP = 10_000;
+const STEPS = FOLLOWERS_MAX / STEP;
 
 interface FollowerRangeSliderProps {
-  value: number | null;
-  onChange: (next: number | null) => void;
+  value: number;
+  onChange: (next: number) => void;
 }
 
 export function FollowerRangeSlider({ value, onChange }: FollowerRangeSliderProps) {
   const [width, setWidth] = useState(0);
-  const index = Math.max(0, FOLLOWER_STOPS.indexOf(value));
+  const index = Math.round(value / STEP);
   // Where the drag started: on the track, and on screen.
   const start = useRef({ x: 0, pageX: 0 });
 
+  const moveTo = (at: number) => {
+    const next = Math.min(STEPS, Math.max(0, at)) * STEP;
+    if (next !== value) onChange(next);
+  };
   const pick = (x: number) => {
-    if (width <= 0) return;
-    const at = Math.min(LAST, Math.max(0, Math.round((x / width) * LAST)));
-    onChange(FOLLOWER_STOPS[at] ?? null);
+    if (width > 0) moveTo(Math.round((x / width) * STEPS));
   };
-
-  const step = (by: number) => {
-    const next = Math.min(LAST, Math.max(0, index + by));
-    onChange(FOLLOWER_STOPS[next] ?? null);
-  };
-  const fill = width * (index / LAST);
+  // A tenth of the range per swipe, for screen readers.
+  const step = (by: number) => moveTo(index + by * (STEPS / 10));
+  const fill = width * (index / STEPS);
 
   return (
     <View className="gap-1">
       <Text className="text-right font-inter-medium text-[10px] leading-4 text-black/70">
-        {followerRangeLabel(value)}
+        {followersRangeLabel(value)}
       </Text>
       <View
         onStartShouldSetResponder={() => true}
@@ -55,7 +52,7 @@ export function FollowerRangeSlider({ value, onChange }: FollowerRangeSliderProp
         accessible
         accessibilityRole="adjustable"
         accessibilityLabel="Follower range"
-        accessibilityValue={{ text: followerRangeLabel(value) }}
+        accessibilityValue={{ text: followersRangeLabel(value) }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
         className="h-[25px] justify-center"

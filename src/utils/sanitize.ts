@@ -3,6 +3,8 @@
 
 import { z } from 'zod';
 
+import { CONTENT_BODY_MAX, TOPIC_MAX } from '@/services/contentService';
+import { POST_TITLE_MAX } from '@/services/creatorCalendarService';
 import { NOTE_MAX } from '@/services/leadActivityService';
 import { EMAIL_MAX, NICHE_MAX } from '@/services/leadsService';
 import { CHAT_MESSAGE_MAX } from '@/services/talentCampaignService';
@@ -63,6 +65,30 @@ export function sanitizeNote(raw: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .replace(/^\s+/, '')
     .slice(0, NOTE_MAX);
+}
+
+// A content title: one line, single-spaced, no leading whitespace.
+export function sanitizeContentTitle(raw: string): string {
+  return raw
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^\s+/, '')
+    .slice(0, POST_TITLE_MAX);
+}
+
+// A caption or script: free text like a note, but much longer.
+export function sanitizeContentBody(raw: string): string {
+  return raw
+    .replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\s+/, '')
+    .slice(0, CONTENT_BODY_MAX);
+}
+
+// A topic as typed: one "#word" with no spaces or extra hashes.
+export function sanitizeTopic(raw: string): string {
+  const word = raw.replace(/[\s#\u0000-\u001F\u007F]/g, '').slice(0, TOPIC_MAX - 1);
+  return word ? `#${word}` : '';
 }
 
 // A one-line field on the Add Lead form (brand, contact person, deliverables): single-spaced,

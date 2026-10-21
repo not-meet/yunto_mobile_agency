@@ -16,6 +16,7 @@ export const activityTypeSchema = tolerantEnum([
   'call',
   'contacted',
   'converted',
+  'intent',
 ]);
 export type ActivityType = z.infer<typeof activityTypeSchema>;
 

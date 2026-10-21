@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { ArrowRight, Phone } from 'lucide-react-native';
+import { ArrowRight, Phone, Trash2 } from 'lucide-react-native';
 import { useCallback, useMemo } from 'react';
 import { PanResponder, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -27,11 +27,12 @@ import { formatInr } from '@/utils/format';
 
 // One lead in the list, tinted by its status: who it is, what they want, when it came in, and
 // one-tap call / WhatsApp. A coral dot on the photo marks a lead nobody has replied to. Tap it,
-// or swipe it right, to open the lead.
+// or swipe it right, to open the lead; swipe it left to delete it.
 
-// How far a swipe has to travel (or how fast it has to be flung) to open the lead.
+// How far a swipe has to travel (or how fast it has to be flung) to open or delete the lead.
 const OPEN_DISTANCE = 96;
 const OPEN_VELOCITY = 0.8;
+const DELETE_RED = '#E74C3C';
 
 function Tag({ label }: { label: string }) {
   return (
@@ -46,9 +47,11 @@ function Tag({ label }: { label: string }) {
 interface LeadCardProps {
   lead: Lead;
   onOpen: () => void;
+  // Asks before deleting; the card springs back meanwhile.
+  onDelete: () => void;
 }
 
-export function LeadCard({ lead, onOpen }: LeadCardProps) {
+export function LeadCard({ lead, onOpen, onDelete }: LeadCardProps) {
   const { width } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const translateX = useSharedValue(0);
@@ -74,16 +77,20 @@ export function LeadCard({ lead, onOpen }: LeadCardProps) {
   const pan = useMemo(
     () =>
       PanResponder.create({
-        // Captured (from the card's Pressable) only for a clearly rightward drag, so taps and
+        // Captured (from the card's Pressable) only for a clearly sideways drag, so taps and
         // vertical scrolls still go through.
         onMoveShouldSetPanResponderCapture: (_, g) =>
-          g.dx > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+          Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
         onPanResponderTerminationRequest: () => false,
         onPanResponderMove: (_, g) => {
-          translateX.set(Math.max(0, g.dx));
+          // Leftward it only goes far enough to show the delete hint.
+          translateX.set(Math.max(-OPEN_DISTANCE * 1.5, g.dx));
         },
         onPanResponderRelease: (_, g) => {
-          if (g.dx < OPEN_DISTANCE && g.vx < OPEN_VELOCITY) {
+          if (g.dx <= -OPEN_DISTANCE || g.vx <= -OPEN_VELOCITY) {
+            translateX.set(withSpring(0, { damping: 18, stiffness: 220 }));
+            onDelete();
+          } else if (g.dx < OPEN_DISTANCE && g.vx < OPEN_VELOCITY) {
             translateX.set(withSpring(0, { damping: 18, stiffness: 220 }));
           } else if (reduceMotion) {
             translateX.set(0);
@@ -100,12 +107,15 @@ export function LeadCard({ lead, onOpen }: LeadCardProps) {
           translateX.set(withSpring(0, { damping: 18, stiffness: 220 }));
         },
       }),
-    [translateX, width, reduceMotion, onOpen],
+    [translateX, width, reduceMotion, onOpen, onDelete],
   );
 
   const swipeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
   const hintStyle = useAnimatedStyle(() => ({
     opacity: interpolate(translateX.value, [0, OPEN_DISTANCE], [0, 1], Extrapolation.CLAMP),
+  }));
+  const deleteHintStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [-OPEN_DISTANCE, 0], [1, 0], Extrapolation.CLAMP),
   }));
 
   return (
@@ -118,6 +128,15 @@ export function LeadCard({ lead, onOpen }: LeadCardProps) {
         <Text className="font-inter-bold text-sm leading-[17px] text-[#141311]">Open</Text>
         <ArrowRight size={16} color="#141311" strokeWidth={2} />
       </Animated.View>
+      <Animated.View
+        style={[deleteHintStyle, { backgroundColor: 'rgba(231, 76, 60, 0.12)' }]}
+        className="absolute inset-0 flex-row items-center justify-end gap-2 rounded-3xl px-5"
+      >
+        <Trash2 size={16} color={DELETE_RED} strokeWidth={2} />
+        <Text className="font-inter-bold text-sm leading-[17px]" style={{ color: DELETE_RED }}>
+          Delete
+        </Text>
+      </Animated.View>
 
       <Animated.View style={swipeStyle} {...pan.panHandlers}>
         <Animated.View style={press.style}>
@@ -127,6 +146,10 @@ export function LeadCard({ lead, onOpen }: LeadCardProps) {
             accessibilityRole="button"
             accessibilityLabel={`${lead.needsResponse ? 'Needs response. ' : ''}${lead.name}, ${status.label}, ${tags.join(', ')}, received ${received}`}
             accessibilityHint="Opens the lead"
+            accessibilityActions={[{ name: 'delete', label: 'Delete lead' }]}
+            onAccessibilityAction={(e) => {
+              if (e.nativeEvent.actionName === 'delete') onDelete();
+            }}
             className="gap-4 rounded-3xl border p-4"
             style={{
               backgroundColor: status.tint,

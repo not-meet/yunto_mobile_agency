@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { MEMBER_STATUS_STYLES } from '@/components/team/labels';
+import { MEMBER_STATUS_STYLES, memberTint, pluralCreators } from '@/components/team/labels';
 import { TeamIcon } from '@/components/team/TeamIcon';
 import type { Assignee, CreatorAssignment } from '@/services/teamService';
 
@@ -18,22 +18,9 @@ const SECTIONS: { title: string; matches: (m: Assignee) => boolean }[] = [
   { title: 'Employees', matches: (m) => m.assignAs !== 'manager' && m.assignAs !== 'lead' },
 ];
 
-// Initial avatars take one of these, the same for a member wherever they show.
-const AVATAR_TINTS = [
-  { background: '#FFE4E6', text: '#F43F5E' },
-  { background: '#E0E7FF', text: '#6366F1' },
-  { background: '#FFEDD5', text: '#EA580C' },
-  { background: '#FCE7F3', text: '#EC4899' },
-];
-const avatarTint = (id: string) =>
-  AVATAR_TINTS[[...id].reduce((sum, c) => sum + c.charCodeAt(0), 0) % AVATAR_TINTS.length] ??
-  AVATAR_TINTS[0]!;
-
-const pluralCreators = (count: number) => `${count} ${count === 1 ? 'creator' : 'creators'}`;
-
 function AssigneeCard({ member, onOpen }: { member: Assignee; onOpen: () => void }) {
   const firstName = member.name.split(' ')[0] ?? member.name;
-  const tint = avatarTint(member.id);
+  const tint = memberTint(member.id);
   const status = MEMBER_STATUS_STYLES[member.status];
   const pill =
     member.status === 'active'

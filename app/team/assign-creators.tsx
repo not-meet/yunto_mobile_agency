@@ -1,43 +1,29 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
 import { Reveal } from '@/components/common/Reveal';
-import { AssignCreatorsSheet } from '@/components/team/AssignCreatorsSheet';
 import { AssignCreatorsSkeleton } from '@/components/team/AssignCreatorsSkeleton';
-import { type AssignmentTab, AssignmentTabs } from '@/components/team/AssignmentTabs';
+import { AssignmentTabs } from '@/components/team/AssignmentTabs';
 import { CreatorAssignmentCard } from '@/components/team/CreatorAssignmentCard';
-import { CreatorPickRow } from '@/components/team/CreatorPickRow';
 import { TeamHierarchy } from '@/components/team/TeamHierarchy';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useCreatorAssignment } from '@/hooks/useTeam';
-import { showToast } from '@/utils/notifications';
 
 // "Assign Creators", opened from Team Management: how the agency's creators are split between
-// the team. "Teams & Roles" shows each team's members by role with how many creators they look
-// after (tap one for their profile and creators); "Unassigned" the creators nobody does yet.
-// The footer button, or an unassigned creator's row, opens the sheet that hands them out.
+// the team, then each team's members by role with how many creators they look after (tap one for
+// their profile and creators). The "Unassigned" tab and the footer button open the creators
+// nobody looks after yet, to hand them out.
 
-// The assign sheet's opening: with a creator already ticked, or none.
-type Assigning = { creatorId?: string } | null;
+const openUnassigned = () => router.push('/team/unassigned');
 
 export default function AssignCreatorsScreen() {
   const insets = useSafeAreaInsets();
   const assignment = useCreatorAssignment();
   const pull = usePullToRefresh(assignment);
-  const [tab, setTab] = useState<AssignmentTab>('teams');
-  const [assigning, setAssigning] = useState<Assigning>(null);
-  // Bumped per opening so the sheet's picks start fresh.
-  const [sheetKey, setSheetKey] = useState(0);
   const { data } = assignment;
-
-  const openSheet = (creatorId?: string) => {
-    setSheetKey((k) => k + 1);
-    setAssigning({ creatorId });
-  };
 
   return (
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top }}>
@@ -73,43 +59,31 @@ export default function AssignCreatorsScreen() {
               <CreatorAssignmentCard assignment={data} />
             </Reveal>
             <Reveal order={1}>
-              <AssignmentTabs value={tab} onChange={setTab} unassigned={data.unassigned} />
+              <AssignmentTabs
+                value="teams"
+                onChange={(next) => {
+                  if (next === 'unassigned') openUnassigned();
+                }}
+                unassigned={data.unassigned}
+              />
             </Reveal>
 
-            {tab === 'teams' ? (
-              data.teams.length > 0 ? (
-                <View className="gap-6">
-                  {data.teams.map((entry, i) => (
-                    <Reveal key={entry.team.id} order={i + 2}>
-                      <TeamHierarchy
-                        entry={entry}
-                        onOpenMember={(id) =>
-                          router.push({ pathname: '/team/assignee/[id]', params: { id } })
-                        }
-                      />
-                    </Reveal>
-                  ))}
-                </View>
-              ) : (
-                <Text className="py-4 text-center font-inter-medium text-sm leading-5 text-muted">
-                  No teams yet. Create one from Team Management.
-                </Text>
-              )
-            ) : data.unassignedCreators.length > 0 ? (
-              <View className="gap-2">
-                {data.unassignedCreators.map((creator, i) => (
-                  <Reveal key={creator.id} order={i + 2}>
-                    <CreatorPickRow
-                      creator={creator}
-                      action="Assign"
-                      onPress={() => openSheet(creator.id)}
+            {data.teams.length > 0 ? (
+              <View className="gap-6">
+                {data.teams.map((entry, i) => (
+                  <Reveal key={entry.team.id} order={i + 2}>
+                    <TeamHierarchy
+                      entry={entry}
+                      onOpenMember={(id) =>
+                        router.push({ pathname: '/team/assignee/[id]', params: { id } })
+                      }
                     />
                   </Reveal>
                 ))}
               </View>
             ) : (
               <Text className="py-4 text-center font-inter-medium text-sm leading-5 text-muted">
-                Every creator has a POC already.
+                No teams yet. Create one from Team Management.
               </Text>
             )}
           </ScrollView>
@@ -117,25 +91,11 @@ export default function AssignCreatorsScreen() {
           <View className="px-9 pt-3" style={{ paddingBottom: insets.bottom + 16 }}>
             <Button
               label="Assign unassigned creators"
-              onPress={() => openSheet()}
+              onPress={openUnassigned}
               disabled={data.unassigned === 0}
               disabledReason="Every creator has a POC already"
             />
           </View>
-
-          <AssignCreatorsSheet
-            key={sheetKey}
-            visible={assigning !== null}
-            onClose={() => setAssigning(null)}
-            assignment={data}
-            initialCreatorId={assigning?.creatorId}
-            onAssigned={(count, member) => {
-              setAssigning(null);
-              showToast(
-                `${count} ${count === 1 ? 'creator' : 'creators'} assigned to ${member.name}`,
-              );
-            }}
-          />
         </>
       ) : assignment.isError ? (
         <View className="flex-1 items-center justify-center gap-4 px-6">

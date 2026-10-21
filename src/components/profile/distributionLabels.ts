@@ -34,6 +34,11 @@ export function modeCopy(mode: DistributionMode, many: string) {
         label: 'All (Broadcast)',
         description: `Send ${many} to all team members. First to respond gets it.`,
       };
+    case 'campaign-won':
+      return {
+        label: 'Campaign Won',
+        description: 'Assigns the campaign to the person who converts the lead.',
+      };
     case 'round-robin':
       return {
         label: 'Round by Round',

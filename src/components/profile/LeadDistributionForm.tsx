@@ -18,10 +18,10 @@ import { PriorityRecipientCard } from '@/components/profile/PriorityRecipientCar
 import { PriorityRecipientSheet } from '@/components/profile/PriorityRecipientSheet';
 import { MEMBERS_CHANGED, useUpdateLeadDistribution } from '@/hooks/useLeadDistribution';
 import {
+  CHANNEL_MODES,
   type DistributionChannel,
   type DistributionMember,
   type DistributionMode,
-  distributionModeSchema,
   type DistributionSettings,
 } from '@/services/leadDistributionService';
 import { apiErrorCode } from '@/utils/api';
@@ -52,6 +52,11 @@ function sequenceCopy(mode: DistributionMode | null, one: string, many: string) 
       return {
         title: `${capitalize(one)} recipients`,
         subtitle: `Every new ${one} goes to all of these people. First to respond gets it.`,
+      };
+    case 'campaign-won':
+      return {
+        title: `${capitalize(one)} recipients`,
+        subtitle: `Each ${one} goes to the person on this list who won its lead.`,
       };
     default:
       return {
@@ -127,7 +132,7 @@ export function LeadDistributionForm({ channel, settings, members }: LeadDistrib
         </Text>
 
         <View accessibilityRole="radiogroup" className="gap-3 px-[15px]">
-          {distributionModeSchema.options.map((option) => {
+          {CHANNEL_MODES[channel].map((option) => {
             const selected = mode === option;
             const { label, description } = modeCopy(option, many);
             return (

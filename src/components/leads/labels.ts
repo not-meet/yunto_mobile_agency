@@ -1,12 +1,4 @@
-import {
-  Bookmark,
-  CircleCheck,
-  CirclePlay,
-  Image as ImageIcon,
-  type LucideIcon,
-  Users,
-  Video,
-} from 'lucide-react-native';
+import { CirclePlay, Image as ImageIcon, type LucideIcon, Video } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 
 import {
@@ -17,13 +9,14 @@ import {
   XIcon,
   YoutubeIcon,
 } from '@/components/leads/PlatformIcons';
-import type { CreatorPlatform, CreatorStatus, LeadCreator } from '@/services/leadCreatorsService';
+import type { CreatorPlatform, CreatorStatus } from '@/services/leadCreatorsService';
 import type {
   DealType,
   DeliverableType,
   Lead,
   LeadPlatform,
   LeadStatus,
+  ProductShipment,
 } from '@/services/leadsService';
 import type { UNKNOWN } from '@/utils/schema';
 
@@ -44,6 +37,11 @@ export const STATUS_STYLES: Record<LeadStatus, StatusStyle> = {
 };
 
 export const DEAL_LABELS: Record<DealType, string> = { paid: 'Paid', barter: 'Barter' };
+
+export const PRODUCT_SHIPMENT_LABELS: Record<ProductShipment, string> = {
+  creator_buys: 'Creator will buy',
+  brand_ships: 'Brand will ship',
+};
 
 // Icon, plus the hue and tile tint the deliverables card uses.
 export const CONTENT_STYLES: Record<
@@ -122,24 +120,6 @@ export const CREATOR_STATUS_LABELS: Record<CreatorStatus, string> = {
   done: 'Done',
   UNKNOWN: 'Other',
 };
-
-export type CreatorFilter = 'all' | 'shortlisted' | 'done';
-
-// Chip order and idle tints, as designed.
-export const CREATOR_FILTER_CHIPS: {
-  key: CreatorFilter;
-  label: string;
-  icon: LucideIcon;
-  background: string;
-}[] = [
-  { key: 'all', label: 'All Creators', icon: Users, background: '#FFFFFF' },
-  { key: 'shortlisted', label: 'Shortlisted', icon: Bookmark, background: '#FFFFFF' },
-  { key: 'done', label: 'Done', icon: CircleCheck, background: '#F2EDFF' },
-];
-
-export function creatorMatches(creator: LeadCreator, filter: CreatorFilter): boolean {
-  return filter === 'all' || creator.status === filter;
-}
 
 // Creator cards take these in turn, down the list.
 const CREATOR_TINTS = ['#F2EDFF', '#FFECF3', '#E8F3FF', '#E9F6ED', '#F7F3EA'];

@@ -5,8 +5,9 @@ import { Pressable, Text, View } from 'react-native';
 import Animated, {
   FadeIn,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 
 import { CARD_SHADOW } from '@/components/home/shared';
@@ -27,11 +28,14 @@ function PeriodPicker({
   value: TeamPeriod;
   onChange: (p: TeamPeriod) => void;
 }) {
+  const reduceMotion = useReducedMotion();
   const offset = useSharedValue(PERIODS.indexOf(value));
 
+  // The same plain 250ms glide as the other sliding pills (LeadTabs); no spring overshoot.
   useEffect(() => {
-    offset.set(withSpring(PERIODS.indexOf(value), { damping: 18, stiffness: 220 }));
-  }, [value, offset]);
+    const to = PERIODS.indexOf(value);
+    offset.set(reduceMotion ? to : withTiming(to, { duration: 250 }));
+  }, [value, offset, reduceMotion]);
 
   const indicator = useAnimatedStyle(() => ({
     transform: [{ translateX: offset.get() * (SEGMENT_WIDTH + SEGMENT_GAP) }],

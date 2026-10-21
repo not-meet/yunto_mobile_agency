@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Inbox } from 'lucide-react-native';
+import { Inbox, Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import Animated, {
   FadeIn,
@@ -11,17 +12,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
+import { ConfirmSheet } from '@/components/common/ConfirmSheet';
 import { leadMatches, parseLeadFilter } from '@/components/leads/labels';
 import { LeadCard } from '@/components/leads/LeadCard';
 import { LeadsSkeleton } from '@/components/leads/LeadsSkeleton';
 import { NeedsResponseCard } from '@/components/leads/NeedsResponseCard';
 import { StatusFilters } from '@/components/leads/StatusFilters';
-import { useLeads } from '@/hooks/useLeads';
+import { useDeleteLead, useLeads } from '@/hooks/useLeads';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import type { Lead } from '@/services/leadsService';
+import { showToast } from '@/utils/notifications';
 
 // Every lead the agency is working, filtered by status. Opened from home's Lead Matrix and "new
 // leads" nudge, and from leads notifications, optionally with a `filter` param ("new",
-// "needs-response"…).
+// "needs-response"…). Swiping a card left asks to delete it.
 
 const STAGGER_MS = 60;
 const MAX_STAGGERED = 6;
@@ -33,7 +37,28 @@ export default function LeadsScreen() {
   const filter = parseLeadFilter(params.filter);
   const leads = useLeads();
   const pull = usePullToRefresh(leads);
+  const remove = useDeleteLead();
   const { data } = leads;
+  // The lead the delete sheet asks about. Kept after it closes so the sheet fades out intact.
+  const [deleting, setDeleting] = useState<Lead | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const askDelete = (lead: Lead) => {
+    if (remove.isPending) return;
+    remove.reset();
+    setDeleting(lead);
+    setSheetOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!deleting) return;
+    remove.mutate(deleting.id, {
+      onSuccess: () => {
+        setSheetOpen(false);
+        showToast('Lead deleted');
+      },
+    });
+  };
 
   const counts = {
     all: data?.length ?? 0,
@@ -90,6 +115,7 @@ export default function LeadsScreen() {
                 <LeadCard
                   lead={item}
                   onOpen={() => router.push({ pathname: '/leads/[id]', params: { id: item.id } })}
+                  onDelete={() => askDelete(item)}
                 />
               </Animated.View>
             )}
@@ -129,6 +155,23 @@ export default function LeadsScreen() {
           <LeadsSkeleton />
         </View>
       )}
+
+      <ConfirmSheet
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title="Delete this lead?"
+        message={
+          deleting
+            ? `${deleting.name}${deleting.brand ? ` from ${deleting.brand}` : ''} and its notes will be removed for everyone on the team.`
+            : ''
+        }
+        icon={Trash2}
+        tone={{ color: '#E74C3C', background: 'rgba(231, 76, 60, 0.12)' }}
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        busy={remove.isPending}
+        error={remove.isError ? 'Couldn’t delete this lead. Please try again.' : null}
+      />
     </View>
   );
 }

@@ -483,6 +483,7 @@ function toMemberDetails(member: MockMember) {
     joinedAt: member.joinedAt,
     birthDate: member.birthDate,
     employmentType: member.employmentType,
+    employeeCode: String(10_000 + (seeded(member.id) % 90_000)),
     reportingManager: member.id === HEAD_ID ? null : findMember(HEAD_ID).name,
     team: team ? toTeam(team) : null,
     permissions: member.permissions,
@@ -576,12 +577,48 @@ const ROSTER: {
   { id: 'ira', name: 'Ira Pillai', handle: '@irasings', niche: 'Music', pocId: null },
 ];
 
-function toAssignableCreator(creator: (typeof ROSTER)[number]) {
-  const { id, name, handle, niche } = creator;
-  return { id, name, handle, avatarUrl: avatar(`creator-${id}`), niche };
+// When each creator was handed to their POC, as a running count: bigger is more recent.
+let assignCount = 0;
+const assignedAt = new Map(ROSTER.map((c) => [c.id, ++assignCount]));
+
+// Numbers dealt from the id, so a creator's stay put between calls.
+function seeded(id: string) {
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return Math.abs(hash);
 }
 
-const creatorsOf = (memberId: string) => ROSTER.filter((c) => c.pocId === memberId);
+const PLATFORMS = ['instagram', 'youtube', 'instagram', 'linkedin'] as const;
+
+function toAssignableCreator(creator: (typeof ROSTER)[number]) {
+  const { id, name, handle, niche } = creator;
+  const seed = seeded(id);
+  const followers = 20_000 + (seed % 180) * 10_000;
+  return {
+    id,
+    name,
+    handle,
+    avatarUrl: avatar(`creator-${id}`),
+    niche,
+    platform: PLATFORMS[seed % PLATFORMS.length] ?? 'instagram',
+    followers,
+    avgViews: Math.round(followers * (0.3 + (seed % 50) / 100)),
+    engagementRate: 1.5 + (seed % 45) / 10,
+    leads: seed % 14,
+    phone: `+9198${String(seed).padStart(8, '0').slice(-8)}`,
+  };
+}
+
+// Most recently assigned first.
+const creatorsOf = (memberId: string) =>
+  ROSTER.filter((c) => c.pocId === memberId).sort(
+    (a, b) => (assignedAt.get(b.id) ?? 0) - (assignedAt.get(a.id) ?? 0),
+  );
+
+function setPoc(creator: (typeof ROSTER)[number], pocId: string | null) {
+  creator.pocId = pocId;
+  if (pocId !== null) assignedAt.set(creator.id, ++assignCount);
+}
 
 function toCreatorAssignment() {
   const unassigned = ROSTER.filter((c) => c.pocId === null);
@@ -613,7 +650,36 @@ export function mockAssignCreators(
   const member = findMember(payload.memberId);
   for (const creator of ROSTER) {
     if (creator.pocId === null && payload.creatorIds.includes(creator.id)) {
-      creator.pocId = member.id;
+      setPoc(creator, member.id);
+    }
+  }
+  return toCreatorAssignment();
+}
+
+// POST /creators/assignment/unassign. Only that member's creators go back to unassigned.
+export function mockUnassignCreators(
+  payload: { creatorIds: string[]; memberId: string } | undefined,
+) {
+  if (!payload) throw new ApiError('Invalid assignment', 400, { message: 'Invalid assignment' });
+  const member = findMember(payload.memberId);
+  for (const creator of ROSTER) {
+    if (creator.pocId === member.id && payload.creatorIds.includes(creator.id)) {
+      setPoc(creator, null);
+    }
+  }
+  return toCreatorAssignment();
+}
+
+// POST /creators/assignment/move. Only creators the first member looks after move.
+export function mockMoveCreators(
+  payload: { creatorIds: string[]; fromMemberId: string; toMemberId: string } | undefined,
+) {
+  if (!payload) throw new ApiError('Invalid assignment', 400, { message: 'Invalid assignment' });
+  const from = findMember(payload.fromMemberId);
+  const to = findMember(payload.toMemberId);
+  for (const creator of ROSTER) {
+    if (creator.pocId === from.id && payload.creatorIds.includes(creator.id)) {
+      setPoc(creator, to.id);
     }
   }
   return toCreatorAssignment();

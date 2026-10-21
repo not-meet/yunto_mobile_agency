@@ -246,3 +246,26 @@ export const LEAVE_STATUS_STYLES: Record<
   },
   UNKNOWN: MEMBER_STATUS_STYLES.UNKNOWN,
 };
+
+// Creator cards on Assign Creators take these washes in turn; the stats strip uses a softer one.
+const CREATOR_TINTS = [
+  { card: 'rgba(242, 237, 255, 0.8)', stats: 'rgba(242, 237, 255, 0.4)' },
+  { card: 'rgba(255, 236, 243, 0.8)', stats: 'rgba(255, 236, 243, 0.4)' },
+  { card: 'rgba(232, 243, 255, 0.8)', stats: 'rgba(232, 243, 255, 0.4)' },
+  { card: 'rgba(233, 246, 237, 0.8)', stats: 'rgba(233, 246, 237, 0.4)' },
+];
+export const creatorTint = (index: number) =>
+  CREATOR_TINTS[index % CREATOR_TINTS.length] ?? CREATOR_TINTS[0]!;
+
+export const pluralCreators = (count: number) => `${count} ${count === 1 ? 'creator' : 'creators'}`;
+
+// A teammate's initial avatar on Assign Creators takes one of these, the same wherever they show.
+const MEMBER_TINTS = [
+  { background: '#FFE4E6', text: '#F43F5E' },
+  { background: '#E0E7FF', text: '#6366F1' },
+  { background: '#FFEDD5', text: '#EA580C' },
+  { background: '#FCE7F3', text: '#EC4899' },
+];
+export const memberTint = (id: string) =>
+  MEMBER_TINTS[[...id].reduce((sum, c) => sum + c.charCodeAt(0), 0) % MEMBER_TINTS.length] ??
+  MEMBER_TINTS[0]!;

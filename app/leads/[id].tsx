@@ -57,7 +57,7 @@ export default function LeadDetailsScreen() {
   const activity = useLeadActivity(id);
   const pull = usePullToRefresh(lead, activity);
   const convert = useConvertLead(id);
-  const remove = useDeleteLead(id);
+  const remove = useDeleteLead();
   const { data } = lead;
 
   const [tab, setTab] = useState<LeadTab>('info');
@@ -85,7 +85,7 @@ export default function LeadDetailsScreen() {
         },
       });
     } else {
-      remove.mutate(undefined, {
+      remove.mutate(id, {
         onSuccess: () => {
           setSheetOpen(false);
           showToast('Lead deleted');

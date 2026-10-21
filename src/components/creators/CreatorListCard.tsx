@@ -23,7 +23,8 @@ import { formatCount } from '@/utils/format';
 
 // One creator on the Creators list, after the web agency card: who they are and where, how they
 // compare and what to do with their rate (or, on All Creators, who manages them), their reach and
-// value in two rows, and quick View / Call / Chat. The check picks them for sharing.
+// value in two rows, and quick View / Call / Chat (`CardButton`, shared with Assign Creators' card).
+// The check picks them for sharing.
 
 const SHADOW = '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1)';
 
@@ -38,7 +39,7 @@ function Insight({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   );
 }
 
-function CardButton({
+export function CardButton({
   label,
   icon: Icon,
   onPress,

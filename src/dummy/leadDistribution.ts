@@ -6,7 +6,7 @@ import { ApiError } from '@/utils/api';
 // Held in memory only: saved preferences are gone after a restart. Anyone who's joined can be
 // in a sequence or be a priority recipient.
 
-type MockMode = 'random' | 'broadcast' | 'round-robin';
+type MockMode = 'random' | 'broadcast' | 'campaign-won' | 'round-robin';
 type MockChannel = 'leads' | 'campaigns';
 
 interface MockSettings {
