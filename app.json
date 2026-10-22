@@ -27,9 +27,7 @@
       "@react-native-community/datetimepicker"
     ],
     "scheme": "yunto",
-    "platforms": [
-      "android"
-    ],
+    "platforms": ["android"],
     "experiments": {
       "typedRoutes": true
     },

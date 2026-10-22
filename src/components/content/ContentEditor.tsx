@@ -10,8 +10,8 @@ import { DISCLOSURES, platformLabel, scriptKind, scriptType } from '@/components
 import { MediaCard } from '@/components/content/MediaCard';
 import { ScheduleCard } from '@/components/content/ScheduleCard';
 import { assist, type Intent, intentFor, PROMPT_INTENT } from '@/components/content/scriptAssist';
-import { ScriptCard, type ScriptMode } from '@/components/content/ScriptCard';
-import { ago, markScript, type Marked } from '@/components/content/scriptMarks';
+import { ScriptCard } from '@/components/content/ScriptCard';
+import { ago } from '@/components/content/scriptMarks';
 import { SegmentTopicsCard } from '@/components/content/SegmentTopicsCard';
 import {
   useDeleteContentMedia,
@@ -34,14 +34,13 @@ import { newIdempotencyKey } from '@/utils/api';
 import { fromDateKey } from '@/utils/dates';
 import { showToast } from '@/utils/notifications';
 
-// The web's content editor (/app/content/[id]) on the phone: schedule, script with Write and
-// Analyze, the AI assistant, insights and versions, media, segment and topics, brand collab and
-// shifting the calendar. "Save draft" keeps it a draft; the dark button puts it on the calendar.
+// The web's content editor (/app/content/[id]) on the phone: the script with the AI assistant,
+// schedule, insights and versions, media, segment and topics, brand collab and shifting the
+// calendar. "Save draft" keeps it a draft; the dark button puts it on the calendar.
 // Unsaved changes are kept on the phone per creator and day (contentDraftStore), so leaving
 // doesn't lose them.
 
 const ASSIST_MS = 650;
-const ANALYZE_MS = 900;
 const KEEP_DRAFT_MS = 400;
 
 function formFrom(post: ContentPost | null, date: string): ContentForm {
@@ -115,8 +114,6 @@ export function ContentEditor({ creatorId, creatorName, date, data }: ContentEdi
   const [instagramNote, setInstagramNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [mode, setMode] = useState<ScriptMode>('write');
-  const [marked, setMarked] = useState<Marked | null>(null);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [refining, setRefining] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,11 +138,8 @@ export function ContentEditor({ creatorId, creatorName, date, data }: ContentEdi
   };
 
   const label = platformLabel(form.platform, form.contentType);
-  const caption = marked
-    ? [marked.hook, ...marked.highlights, marked.cta ?? marked.suggestedCta, form.topics.join(' ')]
-        .filter(Boolean)
-        .join('\n\n')
-    : '';
+  // What auto-post publishes: the canvas as written, then the topics.
+  const caption = [form.body.trim(), form.topics.join(' ')].filter(Boolean).join('\n\n');
 
   const busy = save.isPending ? (save.variables?.content.status ?? null) : null;
   const saveState: SaveState = busy ? 'saving' : !savedOnce ? 'new' : dirty ? 'dirty' : 'saved';
@@ -249,19 +243,6 @@ export function ContentEditor({ creatorId, creatorName, date, data }: ContentEdi
 
   const ask = (prompt: string) =>
     runAssist(prompt, PROMPT_INTENT[prompt] ?? intentFor(prompt) ?? 'improve');
-
-  const analyze = () => {
-    if (!form.body.trim()) {
-      setError('Write your idea first — then Analyze marks the hook, highlights and CTA.');
-      return;
-    }
-    setError(null);
-    setMode('analyzing');
-    later(ANALYZE_MS, () => {
-      setMarked(markScript(form.body, label));
-      setMode('analyzed');
-    });
-  };
 
   const uploadFiles = (files: UploadMediaRequest['files']) => {
     const send = (id: string) =>
@@ -368,6 +349,33 @@ export function ContentEditor({ creatorId, creatorName, date, data }: ContentEdi
             </View>
           ) : null}
 
+          <ScriptCard
+            kind={scriptKind(form.contentType)}
+            title={form.title}
+            body={form.body}
+            editable={editable}
+            onChange={change}
+          >
+            {editable ? (
+              <AiAssistBar
+                suggestion={suggestion}
+                refining={refining}
+                onAsk={ask}
+                onAccept={() => {
+                  if (!suggestion) return;
+                  change({ body: suggestion.text, versionNote: suggestion.note });
+                  setSuggestion(null);
+                }}
+                onAnother={() => {
+                  if (suggestion?.intent) {
+                    runAssist(suggestion.label, suggestion.intent, suggestion.attempt + 1);
+                  }
+                }}
+                onReject={() => setSuggestion(null)}
+              />
+            ) : null}
+          </ScriptCard>
+
           <ScheduleCard
             date={form.date}
             time={form.time}
@@ -380,50 +388,6 @@ export function ContentEditor({ creatorId, creatorName, date, data }: ContentEdi
             onChange={change}
           />
 
-          <ScriptCard
-            kind={scriptKind(form.contentType)}
-            title={form.title}
-            body={form.body}
-            editable={editable}
-            mode={mode}
-            marked={marked}
-            cutLabel={label === 'Not set' ? 'Post' : label}
-            caption={caption}
-            topics={form.topics}
-            onChange={change}
-            onAnalyze={analyze}
-            onWrite={() => setMode('write')}
-            onAddCta={() => {
-              if (!marked?.suggestedCta) return;
-              change({
-                body: `${form.body.trimEnd()} ${marked.suggestedCta}`,
-                versionNote: 'Added CTA',
-              });
-              setMarked({ ...marked, cta: marked.suggestedCta, suggestedCta: null });
-            }}
-          >
-            {editable ? (
-              <AiAssistBar
-                suggestion={suggestion}
-                refining={refining}
-                onAsk={ask}
-                onAccept={() => {
-                  if (!suggestion) return;
-                  change({ body: suggestion.text, versionNote: suggestion.note });
-                  setSuggestion(null);
-                  setMarked(null);
-                  setMode('write');
-                }}
-                onAnother={() => {
-                  if (suggestion?.intent) {
-                    runAssist(suggestion.label, suggestion.intent, suggestion.attempt + 1);
-                  }
-                }}
-                onReject={() => setSuggestion(null)}
-              />
-            ) : null}
-          </ScriptCard>
-
           <AssistantTabs
             body={form.body}
             scriptType={scriptType(form.contentType)}
@@ -433,8 +397,6 @@ export function ContentEditor({ creatorId, creatorName, date, data }: ContentEdi
             onAsk={ask}
             onRestore={(v) => {
               change({ body: v.body, versionNote: `Restored v${v.n}` });
-              setMarked(null);
-              setMode('write');
             }}
           />
 

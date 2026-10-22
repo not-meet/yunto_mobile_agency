@@ -18,7 +18,7 @@ import { useCreatorCalendar, useDeleteCalendarPost } from '@/hooks/useCreatorCal
 import { useCreator } from '@/hooks/useCreators';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import type { CalendarPost } from '@/services/creatorCalendarService';
-import { addMonths, monthKey, todayDate, todayKey } from '@/utils/dates';
+import { addMonths, monthKey, todayDate } from '@/utils/dates';
 import { showToast } from '@/utils/notifications';
 
 // One creator's content calendar, opened from "Manage Calendar" / "View Calendar" on their
@@ -148,7 +148,7 @@ export default function CreatorCalendarScreen() {
                 loading={!data || calendar.isPlaceholderData}
                 canAdd={canEdit}
                 onSelectDay={setSelected}
-                onAddToday={() => openEditor(todayKey())}
+                onAdd={openEditor}
               />
             </Reveal>
           </>

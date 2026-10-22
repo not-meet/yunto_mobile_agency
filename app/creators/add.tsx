@@ -25,6 +25,7 @@ const ROSTER = {
   sort: 'newest',
   filters: NO_CREATOR_FILTERS,
   listedOnly: false,
+  hiddenOnly: false,
 } as const;
 
 export default function AddCreatorsScreen() {

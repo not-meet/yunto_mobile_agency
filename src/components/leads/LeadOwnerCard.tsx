@@ -38,9 +38,11 @@ export function LeadOwnerCard({ owner }: { owner: LeadOwner | null }) {
             hitSlop={6}
             accessibilityRole="button"
             accessibilityLabel={`WhatsApp ${owner.name}`}
-            className={`active:opacity-70 ${owner.phone ? '' : 'opacity-50'}`}
+            className={`h-7 w-7 items-center justify-center rounded-full bg-[#F4F4F6] active:opacity-70 ${
+              owner.phone ? '' : 'opacity-50'
+            }`}
           >
-            <WhatsAppIcon size={28} />
+            <WhatsAppIcon size={14} />
           </Pressable>
         </View>
       ) : (

@@ -131,6 +131,48 @@ export const FOLLOWERS_MAX = 1_000_000;
 // Rupees.
 export const FILTER_BUDGET_MAX = 9_99_99_999;
 
+// Every Indian state, then the union territories: the Filter sheet's Location options.
+export const INDIA_REGIONS = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry',
+] as const;
+export const indiaRegionSchema = z.enum(INDIA_REGIONS);
+export type IndiaRegion = z.infer<typeof indiaRegionSchema>;
+
 const filterBudgetSchema = z.number().int().nonnegative().max(FILTER_BUDGET_MAX).nullable();
 
 // The Filter sheet, as on yunto-private. null (or an empty list) means no limit on that field.
@@ -146,6 +188,8 @@ export const creatorFiltersSchema = z.object({
   niche: z.string().min(1).max(NICHE_MAX).nullable(),
   // At least this many; 0 for any.
   minFollowers: z.number().int().nonnegative().max(FOLLOWERS_MAX),
+  // A state or union territory, e.g. "Maharashtra".
+  state: indiaRegionSchema.nullable(),
   // A city, e.g. "Delhi".
   location: z.string().trim().min(1).max(CREATOR_LOCATION_MAX).nullable(),
   genders: z.array(creatorGenderSchema),
@@ -164,6 +208,7 @@ export const NO_CREATOR_FILTERS: CreatorFilters = {
   deliverables: [],
   niche: null,
   minFollowers: 0,
+  state: null,
   location: null,
   genders: [],
   avgViews: null,
@@ -180,6 +225,8 @@ const searchCreatorsRequest = z.object({
   filters: creatorFiltersSchema,
   // Our Creators only: just those listed in the global pool.
   listedOnly: z.boolean(),
+  // All Creators only: just those the agency has hidden, who are otherwise left out.
+  hiddenOnly: z.boolean(),
 });
 export type SearchCreatorsRequest = z.infer<typeof searchCreatorsRequest>;
 
@@ -216,6 +263,8 @@ const platformStatsSchema = z.object({
   engagementRate: z.number().nonnegative(),
   avgLikes: z.number().int().nonnegative(),
   avgComments: z.number().int().nonnegative(),
+  // Their page on the platform, e.g. "https://instagram.com/leenabliss"; null when unknown.
+  url: z.url({ protocol: /^https$/ }).nullable(),
 });
 export type PlatformStats = z.infer<typeof platformStatsSchema>;
 

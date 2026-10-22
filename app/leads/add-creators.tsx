@@ -59,11 +59,19 @@ export default function AddLeadCreatorsScreen() {
   const [viewingSelected, setViewingSelected] = useState(false);
 
   const search = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
-  const creators = useCreators({ scope, query: search, sort, filters, listedOnly: false });
+  const creators = useCreators({
+    scope,
+    query: search,
+    sort,
+    filters,
+    listedOnly: false,
+    hiddenOnly: false,
+  });
   const pull = usePullToRefresh(creators, onLead);
   const { data } = creators;
 
-  const leadName = lead.data?.name ?? 'this lead';
+  // The brand when there is one, e.g. "Add 2 creators to Zostel".
+  const leadName = lead.data ? (lead.data.brand ?? lead.data.name) : 'this lead';
   const added = new Set(onLead.data?.map((c) => c.id));
   const available = data?.creators.filter((c) => !added.has(c.id));
   const pickedIds = new Set(picked.map((c) => c.id));
@@ -109,7 +117,7 @@ export default function AddLeadCreatorsScreen() {
             numberOfLines={1}
             className="font-inter-medium text-[10px] leading-[11px] text-black/70"
           >
-            {lead.data ? `To ${lead.data.name}` : ' '}
+            {lead.data ? `To ${leadName}` : ' '}
           </Text>
         </View>
       </View>

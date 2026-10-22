@@ -82,14 +82,28 @@ function useAnswerCreatorRequest(answer: (id: string) => Promise<void>) {
 export const useAcceptCreatorRequest = () => useAnswerCreatorRequest(acceptCreatorRequest);
 export const useDeclineCreatorRequest = () => useAnswerCreatorRequest(declineCreatorRequest);
 
-export function useSetCreatorListed() {
+// Flips the request's switch straight away and puts it back if the update fails. Updates for the
+// same request run one after another, so quick taps land in order and a failed one rolls back to
+// what was there before it rather than guessing.
+export function useSetCreatorListed(id: string) {
   const queryClient = useQueryClient();
+  const setRequestListed = (listed: boolean) =>
+    queryClient.setQueryData<CreatorRequest[]>(REQUESTS_KEY, (requests) =>
+      requests?.map((r) => (r.id === id ? { ...r, listed } : r)),
+    );
   return useMutation({
-    mutationFn: ({ id, listed }: { id: string; listed: boolean }) => setCreatorListed(id, listed),
-    onSuccess: (_, { id, listed }) => {
-      queryClient.setQueryData<CreatorRequest[]>(REQUESTS_KEY, (requests) =>
-        requests?.map((r) => (r.id === id ? { ...r, listed } : r)),
-      );
+    scope: { id: `creator-listed-${id}` },
+    mutationFn: (listed: boolean) => setCreatorListed(id, listed),
+    onMutate: async (listed) => {
+      await queryClient.cancelQueries({ queryKey: REQUESTS_KEY });
+      const previous = queryClient
+        .getQueryData<CreatorRequest[]>(REQUESTS_KEY)
+        ?.find((r) => r.id === id)?.listed;
+      setRequestListed(listed);
+      return { previous };
+    },
+    onError: (_, listed, context) => setRequestListed(context?.previous ?? !listed),
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [...CREATORS_KEY, 'search'] });
     },
   });

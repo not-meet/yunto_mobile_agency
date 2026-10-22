@@ -149,8 +149,8 @@ export function ScheduleCard({
                 disabled={!editable || locked}
               />
               <Text className="font-inter text-[11px] leading-4 text-[#94A3B8]">
-                Publishes to @{autoPost.handle} at the date and time above, with the caption from
-                Analyze.
+                Publishes to @{autoPost.handle} at the date and time above, with the caption as
+                written.
               </Text>
             </>
           ) : (

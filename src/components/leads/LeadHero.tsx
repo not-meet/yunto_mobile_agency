@@ -9,7 +9,8 @@ import { usePressScale } from '@/hooks/usePressScale';
 import type { LeadDetails } from '@/services/leadsService';
 import { formatInr } from '@/utils/format';
 
-// Top card of a lead, tinted by its status: who, which campaign, the budget, deal type and status
+// Top card of a lead, tinted by its status: the brand (or the client, without one), then the
+// client and campaign, the budget, deal type and status
 // badges with the intent bar, and quick contacts. The status badge pops in again when it changes (e.g. converted).
 
 function ContactButton({
@@ -50,7 +51,9 @@ function Badge({ label }: { label: string }) {
 export function LeadHero({ lead }: { lead: LeadDetails }) {
   const reduceMotion = useReducedMotion();
   const status = STATUS_STYLES[lead.status];
-  const subtitle = [lead.brand, lead.campaign].filter(Boolean).join(' · ') || 'No campaign yet';
+  const title = lead.brand ?? lead.name;
+  const subtitle =
+    [lead.brand ? lead.name : null, lead.campaign].filter(Boolean).join(' · ') || 'No campaign yet';
 
   return (
     <View
@@ -63,7 +66,7 @@ export function LeadHero({ lead }: { lead: LeadDetails }) {
             numberOfLines={1}
             className="font-inter-bold text-2xl leading-[29px] text-[#1D1D1F]"
           >
-            {lead.name}
+            {title}
           </Text>
           <Text
             numberOfLines={1}

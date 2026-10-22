@@ -35,7 +35,8 @@ import {
 
 // The agency's creators (or everyone on Yunto), opened from the bottom nav: search, filter and
 // sort them, pick some and share them with a brand. "Add Creator" opens the roster to invite
-// more. The header holds creator requests and, on Our Creators, a listed-only switch.
+// more. The header holds creator requests and a switch: listed-only on Our Creators, hidden-only
+// on All Creators.
 
 const STAGGER_MS = 60;
 const MAX_STAGGERED = 6;
@@ -52,6 +53,7 @@ export default function CreatorsScreen() {
   const [sort, setSort] = useState<CreatorSort>('newest');
   const [filters, setFilters] = useState<CreatorFilters>(NO_CREATOR_FILTERS);
   const [listedOnly, setListedOnly] = useState(false);
+  const [hiddenOnly, setHiddenOnly] = useState(false);
   const [sheet, setSheet] = useState<'sort' | 'filter' | 'requests' | null>(null);
   // Kept whole, so picks survive a new search, filter or scope and can still be shared.
   const [picked, setPicked] = useState<Creator[]>([]);
@@ -64,6 +66,7 @@ export default function CreatorsScreen() {
     sort,
     filters,
     listedOnly: scope === 'ours' && listedOnly,
+    hiddenOnly: scope === 'all' && hiddenOnly,
   });
   const requests = useCreatorRequests();
   const pull = usePullToRefresh(creators);
@@ -101,6 +104,7 @@ export default function CreatorsScreen() {
           requests={requests.data?.length ?? 0}
           onRequests={() => setSheet('requests')}
           listed={scope === 'ours' ? { value: listedOnly, onChange: setListedOnly } : undefined}
+          hidden={scope === 'all' ? { value: hiddenOnly, onChange: setHiddenOnly } : undefined}
         />
       </View>
 
@@ -177,7 +181,7 @@ export default function CreatorsScreen() {
                 <Users size={24} color="#9A8EA3" strokeWidth={1.67} />
               </View>
               <Text className="text-center font-inter-medium text-[15px] leading-5 text-muted">
-                {search || listedOnly || countFilters(filters) > 0
+                {search || (scope === 'ours' ? listedOnly : hiddenOnly) || countFilters(filters) > 0
                   ? 'No creators match your search or filters.'
                   : 'No creators here yet.'}
               </Text>

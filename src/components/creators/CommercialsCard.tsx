@@ -163,7 +163,14 @@ function PlatformRates({ rates, first }: { rates: Commercials; first: boolean })
   );
 }
 
-export function CommercialsCard({ commercials }: { commercials: Commercials[] }) {
+// `editable` only for the agency's own creators; another agency's rates are theirs to change.
+export function CommercialsCard({
+  commercials,
+  editable,
+}: {
+  commercials: Commercials[];
+  editable: boolean;
+}) {
   return (
     <ProfilePanel glow="205, 220, 255">
       <View className="flex-row items-center justify-between px-5 py-4">
@@ -174,15 +181,17 @@ export function CommercialsCard({ commercials }: { commercials: Commercials[] })
           Commercials
         </Text>
         {/* TODO(creators): edit rates once the API takes rate updates. */}
-        <Pressable
-          onPress={() => showToast('Editing rates is coming soon')}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel="Edit rates"
-          className="h-8 w-8 items-center justify-center rounded-full border border-black/[0.06] bg-black/[0.04] active:opacity-70"
-        >
-          <Pencil size={13} color="#555555" strokeWidth={2} />
-        </Pressable>
+        {editable ? (
+          <Pressable
+            onPress={() => showToast('Editing rates is coming soon')}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Edit rates"
+            className="h-8 w-8 items-center justify-center rounded-full border border-black/[0.06] bg-black/[0.04] active:opacity-70"
+          >
+            <Pencil size={13} color="#555555" strokeWidth={2} />
+          </Pressable>
+        ) : null}
       </View>
       <View className="px-5 pb-4">
         {commercials.length > 0 ? (

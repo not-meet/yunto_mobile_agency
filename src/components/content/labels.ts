@@ -46,31 +46,6 @@ export const CHIPS = [
   'Add a CTA',
 ];
 
-// Highlight colours for Analyze, as on the web.
-export const MARKS = {
-  hook: {
-    background: '#EFE9FE',
-    tag: 'HOOK',
-    tagBackground: '#F5F3FF',
-    tagColor: '#6D28D9',
-    edge: '#C4B5FD',
-  },
-  highlight: {
-    background: '#FEF9C3',
-    tag: 'HIGHLIGHT',
-    tagBackground: '#FEF3C7',
-    tagColor: '#92400E',
-    edge: '#FDE68A',
-  },
-  cta: {
-    background: '#DCFCE7',
-    tag: 'CTA',
-    tagBackground: '#DCFCE7',
-    tagColor: '#166534',
-    edge: '#86EFAC',
-  },
-} as const;
-
 // "Instagram Reel", or "Not set".
 export function platformLabel(platform: CreatorPlatform | null, type: ContentType | null): string {
   return (

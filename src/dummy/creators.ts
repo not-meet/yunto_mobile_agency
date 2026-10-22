@@ -593,6 +593,13 @@ function toListItem(creator: MockCreator) {
   };
 }
 
+function platformUrl(platform: MockPlatform, handle: string) {
+  const name = handle.replace(/^@/, '');
+  if (platform === 'instagram') return `https://instagram.com/${name}`;
+  if (platform === 'youtube') return `https://youtube.com/@${name}`;
+  return null;
+}
+
 // Each platform after the first is a share of the biggest, so the numbers look plausible.
 const PLATFORM_SHARE = [1, 0.42, 0.18];
 
@@ -606,6 +613,7 @@ function toDetails(creator: MockCreator) {
       engagementRate,
       avgLikes: Math.round((followers * engagementRate) / 100),
       avgComments: Math.round((followers * engagementRate) / 1300),
+      url: platformUrl(platform, creator.handle),
     };
   });
   const rate = creator.reelRate;
@@ -685,6 +693,7 @@ interface MockSearch {
     platform: MockPlatform | null;
     niche: string | null;
     minFollowers: number;
+    state: string | null;
     location: string | null;
     genders: MockGender[];
     avgViews: MockViewsBand | null;
@@ -693,7 +702,25 @@ interface MockSearch {
     budgetMax: number | null;
   };
   listedOnly: boolean;
+  hiddenOnly: boolean;
 }
+
+// Off-roster creators this agency has hidden from All Creators.
+const HIDDEN_IDS = new Set(['zoya', 'dev']);
+
+// The fixtures' state codes, by the names the Filter sheet offers.
+const STATE_NAMES: Record<string, string> = {
+  DL: 'Delhi',
+  GA: 'Goa',
+  KA: 'Karnataka',
+  KL: 'Kerala',
+  MH: 'Maharashtra',
+  RJ: 'Rajasthan',
+  TN: 'Tamil Nadu',
+  TS: 'Telangana',
+  UP: 'Uttar Pradesh',
+  WB: 'West Bengal',
+};
 
 const VIEWS_BANDS: Record<MockViewsBand, [number, number]> = {
   '0-50k': [0, 50_000],
@@ -710,7 +737,11 @@ const barterMin = (c: MockCreator) =>
 
 const unique = <T>(values: (T | null)[]) => [...new Set(values.filter((v): v is T => v !== null))];
 
-function matches(c: MockCreator, { filters, listedOnly, scope }: MockSearch, query: string) {
+function matches(
+  c: MockCreator,
+  { filters, listedOnly, hiddenOnly, scope }: MockSearch,
+  query: string,
+) {
   const views = filters.avgViews ? VIEWS_BANDS[filters.avgViews] : null;
   const floor = barterMin(c);
   return (
@@ -719,6 +750,8 @@ function matches(c: MockCreator, { filters, listedOnly, scope }: MockSearch, que
     (filters.niche === null || c.niche === filters.niche) &&
     (filters.genders.length === 0 || (c.gender !== null && filters.genders.includes(c.gender))) &&
     (scope === 'all' || !listedOnly || c.listed) &&
+    HIDDEN_IDS.has(c.id) === (scope === 'all' && hiddenOnly) &&
+    (filters.state === null || (c.state !== null && STATE_NAMES[c.state] === filters.state)) &&
     (filters.location === null || c.city === filters.location) &&
     c.followers >= filters.minFollowers &&
     (filters.platform === null || c.platforms.includes(filters.platform)) &&

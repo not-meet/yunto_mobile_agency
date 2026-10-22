@@ -18,13 +18,15 @@ import { CreatorsSkeleton } from '@/components/leads/CreatorsSkeleton';
 import { creatorTint } from '@/components/leads/labels';
 import { LeadCreatorsToolbar } from '@/components/leads/LeadCreatorsToolbar';
 import { NoCreatorsCard } from '@/components/leads/NoCreatorsCard';
-import { useLeadCreators } from '@/hooks/useLeadCreators';
+import { RemoveCreatorsSheet } from '@/components/leads/RemoveCreatorsSheet';
+import { useLeadCreators, useRemoveLeadCreators } from '@/hooks/useLeadCreators';
 import { useLead } from '@/hooks/useLeads';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import type { LeadCreator } from '@/services/leadCreatorsService';
+import { showToast } from '@/utils/notifications';
 
-// The creators pitched for a lead: add more from the roster, share or download the list, and
-// search it; a card opens the creator. Until it has any, an empty card and an "Add creators"
+// The creators pitched for a lead: add more from the roster, share or download the list, pick
+// some and remove them, and search it; a card opens the creator. Until it has any, an empty card and an "Add creators"
 // footer stand in. Opened from "Creators" on a lead with the lead's `id`.
 
 const STAGGER_MS = 60;
@@ -48,12 +50,47 @@ export default function LeadCreatorsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const lead = useLead(id);
   const creators = useLeadCreators(id);
+  const remove = useRemoveLeadCreators(id);
   const pull = usePullToRefresh(creators);
   const { data } = creators;
 
   const [query, setQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [removing, setRemoving] = useState(false);
+  // How many the remove sheet is asking about. Kept after it closes so it fades out intact.
+  const [removeCount, setRemoveCount] = useState(0);
   const shown = data?.filter((c) => matchesQuery(c, query));
-  const leadName = lead.data?.name ?? 'Creators';
+  // Picks that are still on the lead, whatever the search.
+  const selected = data?.filter((c) => selectedIds.includes(c.id)) ?? [];
+  const leadName = lead.data ? (lead.data.brand ?? lead.data.name) : 'Creators';
+
+  const toggle = (creatorId: string) =>
+    setSelectedIds((current) =>
+      current.includes(creatorId)
+        ? current.filter((c) => c !== creatorId)
+        : [...current, creatorId],
+    );
+
+  const askRemove = () => {
+    if (remove.isPending) return;
+    remove.reset();
+    setRemoveCount(selected.length);
+    setRemoving(true);
+  };
+
+  const confirmRemove = () => {
+    if (selected.length === 0 || remove.isPending) return;
+    remove.mutate(
+      selected.map((c) => c.id),
+      {
+        onSuccess: () => {
+          setRemoving(false);
+          setSelectedIds([]);
+          showToast(`${plural(removeCount)} removed from ${leadName}`);
+        },
+      },
+    );
+  };
 
   const addCreators = () => router.push({ pathname: '/leads/add-creators', params: { id } });
 
@@ -79,7 +116,13 @@ export default function LeadCreatorsScreen() {
         <>
           <View className="gap-5 pb-5">
             {data.length > 0 ? (
-              <LeadCreatorsToolbar leadName={leadName} creators={data} onAdd={addCreators} />
+              <LeadCreatorsToolbar
+                leadName={leadName}
+                creators={data}
+                onAdd={addCreators}
+                selectedCount={selected.length}
+                onRemove={askRemove}
+              />
             ) : null}
             <View className="px-4">
               <CreatorSearch value={query} onChange={setQuery} />
@@ -129,6 +172,8 @@ export default function LeadCreatorsScreen() {
                   onOpen={() =>
                     router.push({ pathname: '/leads/creator', params: { id, creatorId: item.id } })
                   }
+                  selected={selectedIds.includes(item.id)}
+                  onToggle={() => toggle(item.id)}
                 />
               </Animated.View>
             )}
@@ -161,6 +206,15 @@ export default function LeadCreatorsScreen() {
               <Button label="Add creators" onPress={addCreators} />
             </View>
           ) : null}
+
+          <RemoveCreatorsSheet
+            visible={removing}
+            onClose={() => setRemoving(false)}
+            count={removeCount}
+            onConfirm={confirmRemove}
+            busy={remove.isPending}
+            error={remove.isError ? 'Couldn’t remove these creators. Please try again.' : null}
+          />
         </>
       ) : creators.isError ? (
         <View className="flex-1 items-center justify-center gap-4 px-6">

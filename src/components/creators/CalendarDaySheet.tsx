@@ -15,7 +15,7 @@ import { daysFromToday, fromDateKey, longDate } from '@/utils/dates';
 // Opened by tapping a day on the creator calendar (as in yunto_mobile_app): everything planned
 // for it with its platform, kind and status; tapping a piece opens it in the content editor. When
 // the calendar can be edited, a piece that isn't posted yet can be taken off, and today or later
-// can have something new written.
+// can have something new written; an empty past day says why it can't.
 
 interface CalendarDaySheetProps {
   // "YYYY-MM-DD", or null when closed.
@@ -130,7 +130,9 @@ export function CalendarDaySheet({
           ))
         ) : (
           <Text className="py-6 text-center font-inter-medium text-[15px] leading-6 text-black/50">
-            Nothing planned for this day yet.
+            {canEdit && day && !upcoming
+              ? 'This date has passed, so new content can’t be added to it.'
+              : 'Nothing planned for this day yet.'}
           </Text>
         )}
       </ScrollView>

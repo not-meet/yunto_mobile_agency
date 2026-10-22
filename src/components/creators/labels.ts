@@ -65,6 +65,9 @@ export const DELIVERABLE_LABELS: Record<CreatorDeliverable, string> = {
   community_post: '+ Community Post',
 };
 
+// The platforms the Filter sheet offers, when creators in scope are on them.
+export const FILTER_PLATFORMS: CreatorPlatform[] = ['instagram', 'youtube', 'linkedin'];
+
 // With a platform picked, only its deliverables are offered.
 export const DELIVERABLES_BY_PLATFORM: Partial<Record<CreatorPlatform, CreatorDeliverable[]>> = {
   instagram: ['reel', 'story', 'post'],
@@ -244,6 +247,7 @@ export function countFilters(filters: CreatorFilters): number {
     filters.deliverables.length +
     set(filters.niche) +
     (filters.minFollowers > 0 ? 1 : 0) +
+    set(filters.state) +
     set(filters.location) +
     filters.genders.length +
     set(filters.avgViews) +

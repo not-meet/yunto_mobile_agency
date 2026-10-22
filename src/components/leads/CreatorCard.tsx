@@ -1,4 +1,4 @@
-import { Eye, Mail } from 'lucide-react-native';
+import { Check, Eye, Mail } from 'lucide-react-native';
 import { Fragment } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -10,7 +10,7 @@ import { formatCount } from '@/utils/format';
 import { showToast } from '@/utils/notifications';
 
 // One creator pitched for a lead: who they are and their reach. Tap the card (or View) to open
-// their details.
+// their details; the check picks them for removing.
 
 function CardButton({
   label,
@@ -41,9 +41,11 @@ interface CreatorCardProps {
   creator: LeadCreator;
   tint: string;
   onOpen: () => void;
+  selected: boolean;
+  onToggle: () => void;
 }
 
-export function CreatorCard({ creator, tint, onOpen }: CreatorCardProps) {
+export function CreatorCard({ creator, tint, onOpen, selected, onToggle }: CreatorCardProps) {
   const press = usePressScale(0.98);
 
   const stats = [
@@ -95,6 +97,18 @@ export function CreatorCard({ creator, tint, onOpen }: CreatorCardProps) {
               </View>
             </View>
           </View>
+          <Pressable
+            onPress={onToggle}
+            hitSlop={10}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: selected }}
+            accessibilityLabel={`Select ${creator.name}`}
+            className={`h-6 w-6 items-center justify-center rounded-full active:opacity-70 ${
+              selected ? 'bg-[#141311]' : 'border border-[rgba(20,19,17,0.15)] bg-white/80'
+            }`}
+          >
+            {selected ? <Check size={11} color="#FAF7F2" strokeWidth={2} /> : null}
+          </Pressable>
         </View>
 
         <View className="flex-row items-center gap-2 rounded-[14px] bg-white/50 p-2">

@@ -1,5 +1,7 @@
-import { useLocalSearchParams } from 'expo-router';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/common/BackButton';
@@ -16,14 +18,19 @@ import { CreatorDetailsSkeleton } from '@/components/leads/CreatorDetailsSkeleto
 import { CreatorHero } from '@/components/leads/CreatorHero';
 import { CreatorTimeline } from '@/components/leads/CreatorTimeline';
 import { CREATOR_STATUS_LABELS } from '@/components/leads/labels';
-import { useLeadCreator, useSetLeadCreatorStatus } from '@/hooks/useLeadCreators';
+import { RemoveCreatorsSheet } from '@/components/leads/RemoveCreatorsSheet';
+import {
+  useLeadCreator,
+  useRemoveLeadCreators,
+  useSetLeadCreatorStatus,
+} from '@/hooks/useLeadCreators';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import type { SetCreatorStatusRequest } from '@/services/leadCreatorsService';
 import { showToast } from '@/utils/notifications';
 
 // One creator pitched for a lead: their profile and status, analytics, deliverables, add-ons and
-// activity, with shortlisting pinned to the bottom. Opened from a creator card with the lead's
-// `id` and the `creatorId`.
+// activity, with shortlisting pinned to the bottom and removing them from the lead in the header.
+// Opened from a creator card with the lead's `id` and the `creatorId`.
 export default function LeadCreatorScreen() {
   const insets = useSafeAreaInsets();
   const clearance = useCreatorActionsBarClearance();
@@ -31,7 +38,21 @@ export default function LeadCreatorScreen() {
   const creator = useLeadCreator(id, creatorId);
   const pull = usePullToRefresh(creator);
   const setStatus = useSetLeadCreatorStatus(id);
+  const remove = useRemoveLeadCreators(id);
+  const [removing, setRemoving] = useState(false);
   const { data } = creator;
+
+  const confirmRemove = () => {
+    if (!data || remove.isPending) return;
+    remove.mutate([data.id], {
+      onSuccess: () => {
+        setRemoving(false);
+        showToast(`${data.name} removed from this campaign`);
+        if (router.canGoBack()) router.back();
+        else router.replace({ pathname: '/leads/creators', params: { id } });
+      },
+    });
+  };
 
   const changeStatus = (status: SetCreatorStatusRequest['status']) => {
     if (!data || setStatus.isPending) return;
@@ -55,6 +76,21 @@ export default function LeadCreatorScreen() {
         >
           Creator Detail
         </Text>
+        {data ? (
+          <Pressable
+            onPress={() => {
+              remove.reset();
+              setRemoving(true);
+            }}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${data.name} from this lead`}
+            className="h-9 w-9 items-center justify-center rounded-[18px] border-[0.8px] border-white/90 bg-white/40 active:opacity-70"
+            style={{ boxShadow: '0px 3.27px 9.82px rgba(0, 0, 0, 0.03)' }}
+          >
+            <Trash2 size={18} color="#E74C3C" strokeWidth={1.5} />
+          </Pressable>
+        ) : null}
       </View>
 
       {data ? (
@@ -106,8 +142,8 @@ export default function LeadCreatorScreen() {
                 label: 'Manage Calendar',
                 background: '#FFECF3',
                 grow: true,
-                // TODO(creators): open the creator's calendar once that screen is designed.
-                onPress: () => showToast('Calendar is coming soon'),
+                onPress: () =>
+                  router.push({ pathname: '/creators/calendar', params: { id: data.id } }),
               },
               {
                 label:
@@ -119,6 +155,14 @@ export default function LeadCreatorScreen() {
                 busy: setStatus.isPending && setStatus.variables?.status === 'shortlisted',
               },
             ]}
+          />
+          <RemoveCreatorsSheet
+            visible={removing}
+            onClose={() => setRemoving(false)}
+            count={1}
+            onConfirm={confirmRemove}
+            busy={remove.isPending}
+            error={remove.isError ? 'Couldn’t remove this creator. Please try again.' : null}
           />
         </>
       ) : creator.isError ? (

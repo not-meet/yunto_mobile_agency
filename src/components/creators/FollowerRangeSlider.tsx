@@ -5,7 +5,8 @@ import { followersRangeLabel } from '@/components/creators/labels';
 import { FOLLOWERS_MAX } from '@/services/creatorsService';
 
 // Fewest followers a creator can have, from 0 up to 1M in steps of 10K. Drag the thumb or tap the
-// track.
+// track. The drag moves only the slider; the value is handed up once it's let go, so the sheet
+// around it doesn't re-render on every step.
 
 const THUMB = 25;
 const STEP = 10_000;
@@ -18,16 +19,24 @@ interface FollowerRangeSliderProps {
 
 export function FollowerRangeSlider({ value, onChange }: FollowerRangeSliderProps) {
   const [width, setWidth] = useState(0);
-  const index = Math.round(value / STEP);
+  // Where the thumb is mid-drag; null when not dragging.
+  const [dragging, setDragging] = useState<number | null>(null);
+  const shown = dragging ?? value;
+  const index = Math.round(shown / STEP);
   // Where the drag started: on the track, and on screen.
   const start = useRef({ x: 0, pageX: 0 });
 
+  const clamp = (at: number) => Math.min(STEPS, Math.max(0, at)) * STEP;
   const moveTo = (at: number) => {
-    const next = Math.min(STEPS, Math.max(0, at)) * STEP;
+    const next = clamp(at);
     if (next !== value) onChange(next);
   };
-  const pick = (x: number) => {
-    if (width > 0) moveTo(Math.round((x / width) * STEPS));
+  const dragTo = (x: number) => {
+    if (width > 0) setDragging(clamp(Math.round((x / width) * STEPS)));
+  };
+  const release = () => {
+    if (dragging !== null && dragging !== value) onChange(dragging);
+    setDragging(null);
   };
   // A tenth of the range per swipe, for screen readers.
   const step = (by: number) => moveTo(index + by * (STEPS / 10));
@@ -36,23 +45,26 @@ export function FollowerRangeSlider({ value, onChange }: FollowerRangeSliderProp
   return (
     <View className="gap-1">
       <Text className="text-right font-inter-medium text-[10px] leading-4 text-black/70">
-        {followersRangeLabel(value)}
+        {followersRangeLabel(shown)}
       </Text>
       <View
         onStartShouldSetResponder={() => true}
         onMoveShouldSetResponder={() => true}
-        // Keeps the sheet's scroll from taking over mid-drag.
         onResponderTerminationRequest={() => false}
         onResponderGrant={(e) => {
           start.current = { x: e.nativeEvent.locationX, pageX: e.nativeEvent.pageX };
-          pick(start.current.x);
+          dragTo(start.current.x);
+          // Returning true keeps the sheet's native scroll from taking over mid-drag.
+          return true;
         }}
-        onResponderMove={(e) => pick(start.current.x + e.nativeEvent.pageX - start.current.pageX)}
+        onResponderMove={(e) => dragTo(start.current.x + e.nativeEvent.pageX - start.current.pageX)}
+        onResponderRelease={release}
+        onResponderTerminate={release}
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         accessible
         accessibilityRole="adjustable"
         accessibilityLabel="Follower range"
-        accessibilityValue={{ text: followersRangeLabel(value) }}
+        accessibilityValue={{ text: followersRangeLabel(shown) }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
         className="h-[25px] justify-center"

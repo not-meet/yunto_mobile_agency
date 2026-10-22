@@ -165,8 +165,11 @@ export const saveContentRequest = z
     versionNote: z.string().trim().min(1).max(80),
     // Only with Instagram auto-post allowed: on to publish at `date` + `time`.
     autopost: z.boolean().optional(),
-    // The caption Analyze built, published with auto-post.
-    caption: z.string().max(2200).optional(),
+    // The caption as written (with its topics), published with auto-post.
+    caption: z
+      .string()
+      .max(2200, 'Instagram captions run up to 2,200 characters — shorten it to auto-post')
+      .optional(),
   })
   .refine((c) => !c.brandCollab || c.brand !== null, {
     message: 'Add the brand’s name for this collab, or turn Brand collab off',

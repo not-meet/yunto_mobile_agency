@@ -4,20 +4,51 @@ import { Pressable, Text, View } from 'react-native';
 import { Switch } from '@/components/common/Switch';
 
 // The right of the Creators header, as on yunto-private: creators asking to join (a count
-// badge on a people pill), and on Our Creators a "listed" switch to show only those listed in
-// the global pool.
+// badge on a people pill), then a switch: on Our Creators "listed" shows only those listed in the
+// global pool, on All Creators "hidden" shows only those the agency has hidden.
+
+interface ScopeSwitch {
+  value: boolean;
+  onChange: (next: boolean) => void;
+}
+
+function LabelledSwitch({
+  label,
+  accessibilityLabel,
+  toggle,
+}: {
+  label: string;
+  accessibilityLabel: string;
+  toggle: ScopeSwitch;
+}) {
+  return (
+    <Pressable
+      onPress={() => toggle.onChange(!toggle.value)}
+      accessibilityRole="switch"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ checked: toggle.value }}
+      className="flex-row items-center gap-1"
+    >
+      <Text className="font-inter-medium text-xs leading-4 text-[#141311]">{label}</Text>
+      <Switch value={toggle.value} onValueChange={toggle.onChange} />
+    </Pressable>
+  );
+}
 
 interface CreatorsHeaderActionsProps {
   requests: number;
   onRequests: () => void;
   // Left out on All Creators.
-  listed?: { value: boolean; onChange: (next: boolean) => void };
+  listed?: ScopeSwitch;
+  // Left out on Our Creators.
+  hidden?: ScopeSwitch;
 }
 
 export function CreatorsHeaderActions({
   requests,
   onRequests,
   listed,
+  hidden,
 }: CreatorsHeaderActionsProps) {
   return (
     <View className="flex-row items-center gap-2">
@@ -39,16 +70,10 @@ export function CreatorsHeaderActions({
         ) : null}
       </Pressable>
       {listed ? (
-        <Pressable
-          onPress={() => listed.onChange(!listed.value)}
-          accessibilityRole="switch"
-          accessibilityLabel="Listed only"
-          accessibilityState={{ checked: listed.value }}
-          className="flex-row items-center gap-1"
-        >
-          <Text className="font-inter-medium text-xs leading-4 text-[#141311]">listed</Text>
-          <Switch value={listed.value} onValueChange={listed.onChange} />
-        </Pressable>
+        <LabelledSwitch label="listed" accessibilityLabel="Listed only" toggle={listed} />
+      ) : null}
+      {hidden ? (
+        <LabelledSwitch label="hidden" accessibilityLabel="Hidden only" toggle={hidden} />
       ) : null}
     </View>
   );

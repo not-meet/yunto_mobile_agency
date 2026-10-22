@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Bottom sheet frame (the lead's sheets, the date-occupied prompt): grabber, title and
 // close button over the content. Slides up over a dimmed backdrop that closes it on tap, and
-// shrinks to stay above the keyboard when a field in it is focused.
+// shrinks to stay above the keyboard when a field in it is focused. The backdrop sits behind the
+// sheet rather than around it, so scrolling inside the sheet never has to win a touch from it.
 
 interface BottomSheetProps {
   visible: boolean;
@@ -33,7 +34,11 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
         <Pressable
           onPress={onClose}
           accessibilityLabel="Close"
-          className="flex-1 justify-end bg-black/30"
+          className="absolute inset-0 bg-black/30"
+        />
+        <View
+          pointerEvents="box-none"
+          className="flex-1 justify-end"
           style={{ paddingTop: insets.top + 24 }}
         >
           <Animated.View
@@ -51,9 +56,7 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
                   }
             }
           >
-            {/* Swallows taps so only the backdrop closes the sheet. */}
-            <Pressable
-              accessible={false}
+            <View
               className="max-h-full rounded-t-[32px] bg-white px-6 pt-4"
               style={{ paddingBottom: insets.bottom + 24 }}
             >
@@ -80,9 +83,9 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
               ) : null}
 
               {children}
-            </Pressable>
+            </View>
           </Animated.View>
-        </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );

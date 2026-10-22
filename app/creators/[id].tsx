@@ -78,7 +78,7 @@ export default function CreatorProfileScreen() {
             </Reveal>
           ))}
           <Reveal order={data.platforms.length + 1}>
-            <CommercialsCard commercials={data.commercials} />
+            <CommercialsCard commercials={data.commercials} editable={data.rosterStatus !== null} />
           </Reveal>
           <Reveal order={data.platforms.length + 2}>
             <RecentCampaignsCard campaigns={data.recentCampaigns} />

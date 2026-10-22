@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, { FadeOut, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 
 import { Avatar } from '@/components/common/Avatar';
 import { BottomSheet } from '@/components/common/BottomSheet';
@@ -13,16 +15,33 @@ import type { CreatorRequest } from '@/services/creatorsService';
 import { showToast } from '@/utils/notifications';
 
 // Creators asking to join the agency, as on yunto-private: list them in the global pool, confirm
-// them onto the roster, or delete the request.
+// them onto the roster, or delete the request. The switch keeps its own value so it moves the
+// moment it is tapped (the platform switch otherwise snaps back until the cache catches up), and
+// follows the cache again when an update lands or rolls back.
 
 function RequestRow({ request }: { request: CreatorRequest }) {
   const accept = useAcceptCreatorRequest();
   const decline = useDeclineCreatorRequest();
-  const setListed = useSetCreatorListed();
+  const setListed = useSetCreatorListed(request.id);
   const busy = accept.isPending || decline.isPending;
+  const [listed, setLocalListed] = useState(request.listed);
+  const [cached, setCached] = useState(request.listed);
+  if (cached !== request.listed) {
+    setCached(request.listed);
+    setLocalListed(request.listed);
+  }
+
+  const toggleListed = () => {
+    if (busy) return;
+    const next = !listed;
+    setLocalListed(next);
+    setListed.mutate(next, {
+      onError: () => showToast('Couldn’t update the listing. Please try again.'),
+    });
+  };
 
   return (
-    <View className="gap-2.5">
+    <View className={`gap-2.5 ${busy ? 'opacity-60' : ''}`}>
       <View className="flex-row items-center gap-3 rounded-[28px] border border-[#EAEAEA] bg-[#F8F8F8] px-2.5 py-2.5">
         <Avatar name={request.name} url={request.avatarUrl} size={42} />
         <View className="flex-1">
@@ -38,20 +57,17 @@ function RequestRow({ request }: { request: CreatorRequest }) {
         </View>
       </View>
       <View className="flex-row items-center gap-2">
-        <View className="h-10 flex-1 flex-row items-center justify-between rounded-full border border-[#EAEAEA] pl-4 pr-1.5">
+        <Pressable
+          onPress={toggleListed}
+          disabled={busy}
+          accessibilityRole="switch"
+          accessibilityLabel={`List ${request.name}`}
+          accessibilityState={{ checked: listed, disabled: busy }}
+          className="h-10 flex-1 flex-row items-center justify-between rounded-full border border-[#EAEAEA] pl-4 pr-1.5 active:bg-[#F8F8F8]"
+        >
           <Text className="font-inter-medium text-xs leading-4 text-black">List Creator</Text>
-          <Switch
-            value={request.listed}
-            disabled={setListed.isPending}
-            label={`List ${request.name}`}
-            onValueChange={(listed) =>
-              setListed.mutate(
-                { id: request.id, listed },
-                { onError: () => showToast('Couldn’t update the listing. Please try again.') },
-              )
-            }
-          />
-        </View>
+          <Switch value={listed} disabled={busy} onValueChange={toggleListed} />
+        </Pressable>
         <Pressable
           onPress={() =>
             accept.mutate(request.id, {
@@ -99,6 +115,7 @@ interface CreatorRequestSheetProps {
 
 export function CreatorRequestSheet({ visible, onClose }: CreatorRequestSheetProps) {
   const requests = useCreatorRequests();
+  const reduceMotion = useReducedMotion();
   const { data } = requests;
 
   return (
@@ -110,7 +127,15 @@ export function CreatorRequestSheet({ visible, onClose }: CreatorRequestSheetPro
       >
         {data ? (
           data.length > 0 ? (
-            data.map((request) => <RequestRow key={request.id} request={request} />)
+            data.map((request) => (
+              <Animated.View
+                key={request.id}
+                exiting={reduceMotion ? undefined : FadeOut.duration(150)}
+                layout={reduceMotion ? undefined : LinearTransition.duration(250)}
+              >
+                <RequestRow request={request} />
+              </Animated.View>
+            ))
           ) : (
             <Text className="py-8 text-center font-inter-medium text-sm leading-5 text-muted">
               No pending creator requests.

@@ -1,4 +1,4 @@
-import { Check, ChevronDown, MapPin, Sparkles, Square, SquareCheck, X } from 'lucide-react-native';
+import { Check, ChevronDown, Sparkles, Square, SquareCheck } from 'lucide-react-native';
 import { type ReactNode, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, useReducedMotion } from 'react-native-reanimated';
@@ -14,6 +14,7 @@ import {
   DELIVERABLE_LABELS,
   DELIVERABLES_BY_PLATFORM,
   FALLBACK_LANGUAGES,
+  FILTER_PLATFORMS,
   GENDER_LABELS,
   SERVICE_LABELS,
 } from '@/components/creators/labels';
@@ -28,20 +29,26 @@ import {
   type CreatorsPage,
   creatorServiceSchema,
   FILTER_BUDGET_MAX,
+  INDIA_REGIONS,
   NO_CREATOR_FILTERS,
 } from '@/services/creatorsService';
 import { PLACEHOLDER_COLOR } from '@/utils/constants';
 import { groupDigits } from '@/utils/format';
 
 // "Filters" sheet over the creators list, as on yunto-private: Creator AI, service (with the
-// barter value), platform, deliverables, niche, followers, location, gender, average views, age,
-// language, city and per-creator budget. Niche, location, platform, language and age options
-// come from the creators in scope. Changes are a draft until Apply; Reset clears them all.
+// barter value), platform, deliverables, niche, followers, location (state or union territory),
+// gender, average views, age, language, city and per-creator budget. Niche, city, platform,
+// language and age options come from the creators in scope. Changes are a draft until Apply;
+// Reset clears them all.
 
 const GENDERS = creatorGenderSchema.options;
 const BUDGET_DIGITS = String(FILTER_BUDGET_MAX).length;
+// Off until Creator AI is wired to the list.
+const CREATOR_AI_ENABLED = false;
+// A long list (Location) scrolls inside its dropdown past this height.
+const LIST_MAX_HEIGHT = 280;
 
-type Dropdown = 'niche' | 'views' | 'age' | 'language' | 'city';
+type Dropdown = 'niche' | 'location' | 'views' | 'age' | 'language' | 'city';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -99,6 +106,7 @@ function Select<T extends string>({
   selected,
   onPick,
   radio = false,
+  scroll = false,
 }: {
   label: string;
   summary: string;
@@ -109,8 +117,41 @@ function Select<T extends string>({
   onPick: (value: T) => void;
   // Radio circles (Average Views) instead of a check on the picked row.
   radio?: boolean;
+  // Long lists scroll inside the dropdown.
+  scroll?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
+  const rows = options.map((option) => {
+    const picked = option.value === selected;
+    return (
+      <Pressable
+        key={option.value}
+        onPress={() => onPick(option.value)}
+        accessibilityRole={radio ? 'radio' : 'button'}
+        accessibilityState={radio ? { checked: picked } : { selected: picked }}
+        className={`h-10 flex-row items-center gap-2.5 rounded-xl px-3 active:bg-[#F3F4F6] ${
+          radio ? 'border border-[#E5E7EB]' : picked ? 'bg-[#F3F4F6]' : ''
+        }`}
+      >
+        {radio ? (
+          <View className="h-[15px] w-[15px] items-center justify-center rounded-full border border-black">
+            {picked ? <View className="h-[7px] w-[7px] rounded-full bg-black" /> : null}
+          </View>
+        ) : picked ? (
+          <Check size={14} color="#111827" strokeWidth={2} />
+        ) : (
+          <View className="mx-[4.5px] h-[5px] w-[5px] rounded-full bg-[#D1D5DB]" />
+        )}
+        <Text
+          className={`flex-1 text-sm leading-5 text-[#111827] ${
+            picked ? 'font-inter-semibold' : 'font-inter'
+          }`}
+        >
+          {option.label}
+        </Text>
+      </Pressable>
+    );
+  });
   return (
     <View>
       <Pressable
@@ -120,7 +161,9 @@ function Select<T extends string>({
         accessibilityState={{ expanded: open }}
         className="h-11 flex-row items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-3.5 active:opacity-80"
       >
-        <Text className="font-inter text-sm leading-5 text-[#374151]">{summary}</Text>
+        <Text numberOfLines={1} className="flex-1 font-inter text-sm leading-5 text-[#374151]">
+          {summary}
+        </Text>
         <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}>
           <ChevronDown size={16} color="#374151" strokeWidth={1.75} />
         </View>
@@ -132,37 +175,18 @@ function Select<T extends string>({
           className={`mt-2 rounded-2xl border border-[#E5E7EB] bg-white p-2 ${radio ? 'gap-1.5' : ''}`}
           style={{ boxShadow: '0px 6px 20px rgba(16, 24, 40, 0.08)' }}
         >
-          {options.map((option) => {
-            const picked = option.value === selected;
-            return (
-              <Pressable
-                key={option.value}
-                onPress={() => onPick(option.value)}
-                accessibilityRole={radio ? 'radio' : 'button'}
-                accessibilityState={radio ? { checked: picked } : { selected: picked }}
-                className={`h-10 flex-row items-center gap-2.5 rounded-xl px-3 active:bg-[#F3F4F6] ${
-                  radio ? 'border border-[#E5E7EB]' : picked ? 'bg-[#F3F4F6]' : ''
-                }`}
-              >
-                {radio ? (
-                  <View className="h-[15px] w-[15px] items-center justify-center rounded-full border border-black">
-                    {picked ? <View className="h-[7px] w-[7px] rounded-full bg-black" /> : null}
-                  </View>
-                ) : picked ? (
-                  <Check size={14} color="#111827" strokeWidth={2} />
-                ) : (
-                  <View className="mx-[4.5px] h-[5px] w-[5px] rounded-full bg-[#D1D5DB]" />
-                )}
-                <Text
-                  className={`flex-1 text-sm leading-5 text-[#111827] ${
-                    picked ? 'font-inter-semibold' : 'font-inter'
-                  }`}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {scroll ? (
+            // Scrolls on its own inside the sheet's scroll.
+            <ScrollView
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              style={{ maxHeight: LIST_MAX_HEIGHT }}
+            >
+              {rows}
+            </ScrollView>
+          ) : (
+            rows
+          )}
         </Animated.View>
       ) : null}
     </View>
@@ -274,7 +298,7 @@ export function FilterSheet({ visible, onClose, value, onApply, facets }: Filter
 
   const niches = facets?.niches ?? [];
   const locations = facets?.locations ?? [];
-  const platforms = facets?.platforms ?? [];
+  const platforms = (facets?.platforms ?? []).filter((p) => FILTER_PLATFORMS.includes(p));
   const languages = facets?.languages.length ? facets.languages : FALLBACK_LANGUAGES;
   const ageRanges = facets?.ageRanges.length ? facets.ageRanges : ageRangeSchema.options;
   const deliverables = draft.platform
@@ -302,7 +326,7 @@ export function FilterSheet({ visible, onClose, value, onApply, facets }: Filter
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ gap: 16, paddingBottom: 4 }}
       >
-        <CreatorAiCard />
+        {CREATOR_AI_ENABLED ? <CreatorAiCard /> : null}
 
         <Section title="Choose Service">
           <View className="flex-row flex-wrap gap-2">
@@ -398,29 +422,19 @@ export function FilterSheet({ visible, onClose, value, onApply, facets }: Filter
         </Section>
 
         <Section title="Location">
-          <View className="flex-row flex-wrap gap-2">
-            {locations.length > 0 ? (
-              locations.map((city) => {
-                const active = draft.location === city;
-                return (
-                  <Pill
-                    key={city}
-                    label={city}
-                    active={active}
-                    icon={active ? <X size={12} color="#FFFFFF" strokeWidth={2} /> : null}
-                    onPress={() => set('location', active ? null : city)}
-                  />
-                );
-              })
-            ) : (
-              <Pill
-                label="location"
-                active={false}
-                dashed
-                icon={<MapPin size={14} color="#4B5563" strokeWidth={1.75} />}
-              />
-            )}
-          </View>
+          <Select
+            label="Location"
+            summary={draft.state ?? 'All States & UTs'}
+            open={open === 'location'}
+            onToggle={() => toggleOpen('location')}
+            options={[
+              { value: '', label: 'All States & UTs' },
+              ...INDIA_REGIONS.map((region) => ({ value: region, label: region })),
+            ]}
+            selected={draft.state ?? ''}
+            onPick={(region) => pickFrom(() => set('state', region || null))}
+            scroll
+          />
         </Section>
 
         <Section title="Gender">
@@ -501,7 +515,6 @@ export function FilterSheet({ visible, onClose, value, onApply, facets }: Filter
           />
         </Section>
 
-        {/* The same city as the Location pills, picked from a list. */}
         <Section title="City">
           <Select
             label="City"
