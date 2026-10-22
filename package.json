@@ -57,7 +57,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "update:preview": "bunx eas-cli update --channel preview --platform android"
   },
   "private": true
 }

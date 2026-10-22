@@ -17,9 +17,11 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 
 import { DevRoleSwitcher } from '@/dev/DevRoleSwitcher';
+import { useOtaUpdates } from '@/hooks/useOtaUpdates';
 
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
+  useOtaUpdates();
   const [fontsLoaded] = useFonts({
     Inter_300Light,
     Inter_400Regular,
