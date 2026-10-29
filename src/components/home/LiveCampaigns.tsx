@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, {
@@ -9,12 +10,13 @@ import Animated, {
 import Svg, { Circle } from 'react-native-svg';
 
 import { SectionHeader } from '@/components/home/SectionHeader';
-import { CARD_SHADOW, GLOW, comingSoon } from '@/components/home/shared';
+import { CARD_SHADOW, GLOW } from '@/components/home/shared';
 import { usePressScale } from '@/hooks/usePressScale';
 import type { HomeDashboard } from '@/services/homeService';
 import { formatInr } from '@/utils/format';
 
-// Operations only: running campaigns in a sideways scroll, each with a progress ring.
+// Running campaigns in a sideways scroll, each with a progress ring; a card opens its campaign
+// and "View all" opens the campaigns list.
 
 type Campaign = HomeDashboard['liveCampaigns'][number];
 
@@ -111,8 +113,7 @@ function CampaignCard({ campaign, index }: { campaign: Campaign; index: number }
     <Animated.View style={press.style}>
       <Pressable
         {...press.handlers}
-        // TODO(campaigns): open the campaign once that screen exists.
-        onPress={() => comingSoon('Campaign details')}
+        onPress={() => router.push({ pathname: '/campaigns/[id]', params: { id: campaign.id } })}
         accessibilityRole="button"
         accessibilityLabel={`${campaign.title} for ${campaign.brand}, ${campaign.stage}, ${campaign.progress}% done`}
         className={`w-[280px] gap-4 overflow-hidden rounded-[28px] border p-5 ${tone.card}`}
@@ -156,7 +157,10 @@ function CampaignCard({ campaign, index }: { campaign: Campaign; index: number }
 export function LiveCampaigns({ campaigns }: { campaigns: HomeDashboard['liveCampaigns'] }) {
   return (
     <View className="gap-4">
-      <SectionHeader title="Live Campaigns" />
+      <SectionHeader
+        title="Live Campaigns"
+        action={{ label: 'View all', onPress: () => router.push('/campaigns') }}
+      />
       {/* Bleeds past the page padding so cards scroll edge to edge. */}
       <ScrollView
         horizontal

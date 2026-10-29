@@ -17,10 +17,11 @@ import { FilterSheet } from '@/components/creators/FilterSheet';
 import { countFilters, pluralCreators, SCOPE_OPTIONS } from '@/components/creators/labels';
 import { ScopeToggle } from '@/components/creators/ScopeToggle';
 import { SelectionSummary } from '@/components/creators/SelectionSummary';
-import {
-  ShareCreatorsButton,
-  useShareCreatorsClearance,
-} from '@/components/creators/ShareCreatorsButton';
+// Share footer hidden for now.
+// import {
+//   ShareCreatorsButton,
+//   useShareCreatorsClearance,
+// } from '@/components/creators/ShareCreatorsButton';
 import { SortSheet } from '@/components/creators/SortSheet';
 import { useCreatorRequests, useCreators } from '@/hooks/useCreators';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -34,7 +35,7 @@ import {
 } from '@/services/creatorsService';
 
 // The agency's creators (or everyone on Yunto), opened from the bottom nav: search, filter and
-// sort them, pick some and share them with a brand. "Add Creator" opens the roster to invite
+// sort them, pick some and share them with a brand (Our Creators only). "Add Creator" opens the roster to invite
 // more. The header holds creator requests and a switch: listed-only on Our Creators, hidden-only
 // on All Creators.
 
@@ -46,7 +47,7 @@ const SEARCH_DEBOUNCE_MS = 350;
 export default function CreatorsScreen() {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
-  const clearance = useShareCreatorsClearance();
+  // const shareClearance = useShareCreatorsClearance();
 
   const [scope, setScope] = useState<CreatorScope>('ours');
   const [query, setQuery] = useState('');
@@ -76,6 +77,8 @@ export default function CreatorsScreen() {
   // Back to the full list once nothing's picked.
   const onlySelected = viewingSelected && picked.length > 0;
   const shown = onlySelected ? picked : data?.creators;
+  // Sharing is only for the agency's own creators.
+  // const canShare = scope === 'ours';
   const scopeLabel = SCOPE_OPTIONS.find((o) => o.key === scope)?.label ?? 'Creators';
 
   const toggle = (creator: Creator) =>
@@ -136,7 +139,11 @@ export default function CreatorsScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: clearance }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            // paddingBottom: canShare ? shareClearance : insets.bottom + 24,
+            paddingBottom: insets.bottom + 24,
+          }}
           ItemSeparatorComponent={() => <View className="h-3" />}
           ListHeaderComponent={
             <View className="flex-row items-center justify-between pb-3">
@@ -208,7 +215,7 @@ export default function CreatorsScreen() {
         </View>
       )}
 
-      <ShareCreatorsButton creators={picked} />
+      {/* {canShare ? <ShareCreatorsButton creators={picked} /> : null} */}
 
       <SortSheet
         visible={sheet === 'sort'}

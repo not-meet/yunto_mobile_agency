@@ -29,12 +29,18 @@ import type { SetCreatorStatusRequest } from '@/services/leadCreatorsService';
 import { showToast } from '@/utils/notifications';
 
 // One creator pitched for a lead: their profile and status, analytics, deliverables, add-ons and
-// activity, with shortlisting pinned to the bottom and removing them from the lead in the header.
-// Opened from a creator card with the lead's `id` and the `creatorId`.
+// activity, with removing them from the lead in the header. On a lead, the calendar and
+// shortlisting are pinned to the bottom; on its campaign (`from` "campaign"), just marking them
+// done. Opened from a creator card with the lead's `id` and the `creatorId`.
 export default function LeadCreatorScreen() {
   const insets = useSafeAreaInsets();
   const clearance = useCreatorActionsBarClearance();
-  const { id, creatorId } = useLocalSearchParams<{ id: string; creatorId: string }>();
+  const { id, creatorId, from } = useLocalSearchParams<{
+    id: string;
+    creatorId: string;
+    from?: string;
+  }>();
+  const onCampaign = from === 'campaign';
   const creator = useLeadCreator(id, creatorId);
   const pull = usePullToRefresh(creator);
   const setStatus = useSetLeadCreatorStatus(id);
@@ -49,7 +55,7 @@ export default function LeadCreatorScreen() {
         setRemoving(false);
         showToast(`${data.name} removed from this campaign`);
         if (router.canGoBack()) router.back();
-        else router.replace({ pathname: '/leads/creators', params: { id } });
+        else router.replace({ pathname: '/leads/creators', params: { id, from } });
       },
     });
   };
@@ -69,7 +75,10 @@ export default function LeadCreatorScreen() {
   return (
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top }}>
       <View className="flex-row items-center gap-5 px-4 py-5">
-        <BackButton tone="dark" fallbackHref={{ pathname: '/leads/creators', params: { id } }} />
+        <BackButton
+          tone="dark"
+          fallbackHref={{ pathname: '/leads/creators', params: { id, from } }}
+        />
         <Text
           accessibilityRole="header"
           className="flex-1 font-geist-medium text-xl leading-6 tracking-[-0.6px] text-[#141311]"
@@ -114,7 +123,7 @@ export default function LeadCreatorScreen() {
               <Reveal order={0}>
                 <CreatorHero
                   creator={data}
-                  onStatusChange={changeStatus}
+                  onStatusChange={onCampaign ? undefined : changeStatus}
                   updating={setStatus.isPending}
                 />
               </Reveal>
@@ -137,24 +146,39 @@ export default function LeadCreatorScreen() {
 
           <CreatorActionsBar
             buttonHeight={40}
-            actions={[
-              {
-                label: 'Manage Calendar',
-                background: '#FFECF3',
-                grow: true,
-                onPress: () =>
-                  router.push({ pathname: '/creators/calendar', params: { id: data.id } }),
-              },
-              {
-                label:
-                  data.status === 'pending' ? 'Mark Shortlist' : CREATOR_STATUS_LABELS[data.status],
-                background: '#E9F6ED',
-                grow: true,
-                onPress: () => changeStatus('shortlisted'),
-                disabled: data.status !== 'pending',
-                busy: setStatus.isPending && setStatus.variables?.status === 'shortlisted',
-              },
-            ]}
+            actions={
+              onCampaign
+                ? [
+                    {
+                      label: data.status === 'done' ? 'Done' : 'Mark Done',
+                      background: '#E9F6ED',
+                      grow: true,
+                      onPress: () => changeStatus('done'),
+                      disabled: data.status === 'done',
+                      busy: setStatus.isPending,
+                    },
+                  ]
+                : [
+                    {
+                      label: 'Manage Calendar',
+                      background: '#FFECF3',
+                      grow: true,
+                      onPress: () =>
+                        router.push({ pathname: '/creators/calendar', params: { id: data.id } }),
+                    },
+                    {
+                      label:
+                        data.status === 'pending'
+                          ? 'Mark Shortlist'
+                          : CREATOR_STATUS_LABELS[data.status],
+                      background: '#E9F6ED',
+                      grow: true,
+                      onPress: () => changeStatus('shortlisted'),
+                      disabled: data.status !== 'pending',
+                      busy: setStatus.isPending && setStatus.variables?.status === 'shortlisted',
+                    },
+                  ]
+            }
           />
           <RemoveCreatorsSheet
             visible={removing}

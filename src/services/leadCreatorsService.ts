@@ -39,6 +39,13 @@ const leadCreatorSchema = z.object({
   avgViews: z.number().int().nonnegative(),
   // Percent, e.g. 4.2.
   engagementRate: z.number().nonnegative(),
+  // The other agency handling them, e.g. "Bloom Collective"; null for the agency's own creators.
+  managedBy: z.string().min(1).nullable(),
+  // E.164, e.g. "+919812345678"; null when unknown.
+  phone: z
+    .string()
+    .regex(/^\+[1-9]\d{7,14}$/)
+    .nullable(),
 });
 export type LeadCreator = z.infer<typeof leadCreatorSchema>;
 

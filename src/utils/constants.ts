@@ -12,3 +12,6 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const PLACEHOLDER_COLOR = '#BDB8C7';
+
+// Where features that need a bigger screen (Creator AI) live.
+export const YUNTO_WEB_URL = 'https://app.yunto.ai';

@@ -1,21 +1,29 @@
 import { Pressable, ScrollView } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 
-import { FILTER_CHIPS, type LeadFilter } from '@/components/leads/labels';
-
-// Scrolling row of status chips above the leads list, each with its count. The selected chip
-// darkens with a short colour ease. None is selected while the banner's "Review now" is on.
+// Scrolling row of status chips above the leads or campaigns list, each with its count. The
+// selected chip darkens with a short colour ease. None is selected while the leads banner's
+// "Review now" is on.
 
 const ACTIVE_SHADOW = '0px 4px 12px rgba(90, 62, 117, 0.08)';
 const IDLE_SHADOW = '0px 2px 8px rgba(0, 0, 0, 0.02)';
 
-interface StatusFiltersProps {
-  selected: LeadFilter;
-  counts: Record<(typeof FILTER_CHIPS)[number]['key'], number>;
-  onSelect: (filter: LeadFilter) => void;
+interface StatusFiltersProps<T extends string> {
+  chips: readonly { key: T; label: string }[];
+  selected: string;
+  counts: Record<T, number>;
+  onSelect: (filter: T) => void;
+  // What's counted, for screen readers, e.g. "leads".
+  noun: string;
 }
 
-export function StatusFilters({ selected, counts, onSelect }: StatusFiltersProps) {
+export function StatusFilters<T extends string>({
+  chips,
+  selected,
+  counts,
+  onSelect,
+  noun,
+}: StatusFiltersProps<T>) {
   const reduceMotion = useReducedMotion();
   const ease = (...properties: ('backgroundColor' | 'borderColor' | 'color')[]) =>
     reduceMotion ? null : { transitionProperty: properties, transitionDuration: 200 };
@@ -28,7 +36,7 @@ export function StatusFilters({ selected, counts, onSelect }: StatusFiltersProps
       className="-mx-4 grow-0"
       contentContainerStyle={{ gap: 10, paddingHorizontal: 16, paddingVertical: 5 }}
     >
-      {FILTER_CHIPS.map(({ key, label }) => {
+      {chips.map(({ key, label }) => {
         const active = key === selected;
         return (
           <Pressable
@@ -36,7 +44,7 @@ export function StatusFilters({ selected, counts, onSelect }: StatusFiltersProps
             onPress={() => onSelect(key)}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={`${label}, ${counts[key]} leads`}
+            accessibilityLabel={`${label}, ${counts[key]} ${noun}`}
             className="active:opacity-80"
           >
             <Animated.View

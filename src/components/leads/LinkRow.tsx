@@ -4,7 +4,7 @@ import Animated from 'react-native-reanimated';
 
 import { usePressScale } from '@/hooks/usePressScale';
 
-// A white row that opens something else about the lead ("Script & References", "Creators").
+// A white row that opens something else about the lead (e.g. "Creators").
 
 export function LinkRow({ title, onPress }: { title: string; onPress: () => void }) {
   const press = usePressScale(0.98);

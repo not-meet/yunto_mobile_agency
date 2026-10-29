@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bell, Mail, type LucideIcon } from 'lucide-react-native';
+import { AlarmClock, Bell, Mail, type LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
@@ -9,8 +9,8 @@ import { CARD_SHADOW } from '@/components/home/shared';
 import { usePressScale } from '@/hooks/usePressScale';
 import type { Role } from '@/services/authService';
 
-// Avatar, name and role on the left (opens the profile); messages (side panel) and
-// notifications (own screen) on the right, as in yunto_mobile_app.
+// Avatar, name and role on the left (opens the profile); reminders and notifications (own
+// screens) and messages (side panel) on the right, as in yunto_mobile_app.
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
@@ -91,6 +91,7 @@ export function HomeHeader({ name, role }: HomeHeaderProps) {
         </View>
       </Pressable>
       <View className="flex-row gap-2">
+        <IconButton icon={AlarmClock} label="Reminders" onPress={() => router.push('/reminders')} />
         <IconButton icon={Mail} label="Messages" onPress={() => setMessagesOpen(true)} />
         <IconButton
           icon={Bell}

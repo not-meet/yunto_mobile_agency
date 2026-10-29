@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackButton } from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
 import { ConfirmSheet } from '@/components/common/ConfirmSheet';
-import { leadMatches, parseLeadFilter } from '@/components/leads/labels';
+import { FILTER_CHIPS, leadMatches, parseLeadFilter } from '@/components/leads/labels';
 import { LeadCard } from '@/components/leads/LeadCard';
 import { LeadsSkeleton } from '@/components/leads/LeadsSkeleton';
 import { NeedsResponseCard } from '@/components/leads/NeedsResponseCard';
@@ -90,7 +90,13 @@ export default function LeadsScreen() {
               reviewing={filter === 'needs-response'}
               onToggle={() => setFilter(filter === 'needs-response' ? 'all' : 'needs-response')}
             />
-            <StatusFilters selected={filter} counts={counts} onSelect={setFilter} />
+            <StatusFilters
+              chips={FILTER_CHIPS}
+              selected={filter}
+              counts={counts}
+              onSelect={setFilter}
+              noun="leads"
+            />
           </View>
 
           <Animated.FlatList

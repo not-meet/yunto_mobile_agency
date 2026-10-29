@@ -17,10 +17,16 @@ export function SectionHeader({ title, action }: SectionHeaderProps) {
         {title}
       </Text>
       {action ? (
+        // Pressed tint comes from the Pressable: an `active:` class on the Text would make the
+        // Text claim the touch, and onPress would never fire.
         <Pressable onPress={action.onPress} hitSlop={8} accessibilityRole="link">
-          <Text className="font-inter-semibold text-sm leading-5 text-charcoal/60 active:text-charcoal">
-            {action.label}
-          </Text>
+          {({ pressed }) => (
+            <Text
+              className={`font-inter-semibold text-sm leading-5 ${pressed ? 'text-charcoal' : 'text-charcoal/60'}`}
+            >
+              {action.label}
+            </Text>
+          )}
         </Pressable>
       ) : null}
     </View>

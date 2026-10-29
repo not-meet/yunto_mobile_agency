@@ -1,4 +1,10 @@
-import { CirclePlay, Image as ImageIcon, type LucideIcon, Video } from 'lucide-react-native';
+import {
+  CirclePlay,
+  Image as ImageIcon,
+  type LucideIcon,
+  Megaphone,
+  Video,
+} from 'lucide-react-native';
 import type { ComponentType } from 'react';
 
 import {
@@ -13,10 +19,13 @@ import type { CreatorPlatform, CreatorStatus } from '@/services/leadCreatorsServ
 import type {
   DealType,
   DeliverableType,
+  FollowerTier,
   Lead,
   LeadPlatform,
   LeadStatus,
   ProductShipment,
+  RequirementAgeRange,
+  RequirementGender,
 } from '@/services/leadsService';
 import type { UNKNOWN } from '@/utils/schema';
 
@@ -51,6 +60,7 @@ export const CONTENT_STYLES: Record<
   reel: { label: 'Reel', icon: Video, color: '#C13FBA', background: '#FFF0F5' },
   story: { label: 'Story', icon: CirclePlay, color: '#8A5AFE', background: '#F3EBFF' },
   post: { label: 'Post', icon: ImageIcon, color: '#3776F2', background: '#EBF1FE' },
+  ugc: { label: 'UGC Ads', icon: Megaphone, color: '#D97706', background: '#FEF2E6' },
 };
 
 // "needs-response" isn't a chip: "Review now" on the banner turns it on.
@@ -126,6 +136,19 @@ const CREATOR_TINTS = ['#F2EDFF', '#FFECF3', '#E8F3FF', '#E9F6ED', '#F7F3EA'];
 export const creatorTint = (index: number): string =>
   CREATOR_TINTS[index % CREATOR_TINTS.length] ?? '#F2EDFF';
 
+// A lead's creators board groups them by reach, in these bands, as on the web's.
+export type ReachTier = 'mega' | 'macro' | 'micro' | 'nano';
+
+export const REACH_TIERS: { key: ReachTier; label: string; heading: string; min: number }[] = [
+  { key: 'mega', label: 'Mega', heading: 'Mega / Celebrity Creators (1M+)', min: 1_000_000 },
+  { key: 'macro', label: 'Macro', heading: 'Macro Creators (250K – 1M)', min: 250_000 },
+  { key: 'micro', label: 'Micro', heading: 'Micro Creators (50K – 250K)', min: 50_000 },
+  { key: 'nano', label: 'Nano', heading: 'Nano Creators (Under 50K)', min: 0 },
+];
+
+export const reachTierOf = (followers: number): ReachTier =>
+  REACH_TIERS.find((t) => followers >= t.min)?.key ?? 'nano';
+
 export const CREATOR_PLATFORM_ICONS: Record<CreatorPlatform, PlatformIcon | null> = {
   instagram: InstagramIcon,
   youtube: YoutubeIcon,
@@ -135,3 +158,36 @@ export const CREATOR_PLATFORM_ICONS: Record<CreatorPlatform, PlatformIcon | null
 // Gains in green, drops in red.
 export const trendColor = (change: number): string => (change < 0 ? '#E74C3C' : '#23C16B');
 export const signed = (change: number): string => `${change > 0 ? '+' : ''}${change}%`;
+
+// The brand's requirements.
+
+export const REQUIREMENT_GENDER_LABELS: Record<RequirementGender, string> = {
+  female: 'Female',
+  male: 'Male',
+  other: 'Other',
+};
+
+export const REQUIREMENT_AGE_LABELS: Record<RequirementAgeRange, string> = {
+  '18-24': '18 – 24',
+  '25-34': '25 – 34',
+  '35-44': '35 – 44',
+  '45+': '45+',
+};
+
+export const FOLLOWER_TIER_LABELS: Record<FollowerTier, string> = {
+  nano: 'Nano (10K – 50K)',
+  micro: 'Micro (50K – 250K)',
+  macro: 'Macro (250K – 1M)',
+  mega: 'Mega (1M+)',
+};
+
+// Offered in the requirements sheet, plus any the brand already named.
+export const REQUIREMENT_LANGUAGES = [
+  'English',
+  'Hindi',
+  'Marathi',
+  'Tamil',
+  'Telugu',
+  'Bengali',
+  'Kannada',
+];

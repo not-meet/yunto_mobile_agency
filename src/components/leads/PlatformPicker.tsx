@@ -17,7 +17,11 @@ interface PlatformPickerProps {
 }
 
 export function PlatformPicker({ selected, onChange }: PlatformPickerProps) {
-  const [shown, setShown] = useState<LeadPlatform[]>(DEFAULT_PLATFORMS);
+  // Any picked already (editing requirements) are shown up front too.
+  const [shown, setShown] = useState<LeadPlatform[]>(() => [
+    ...DEFAULT_PLATFORMS,
+    ...selected.filter((platform) => !DEFAULT_PLATFORMS.includes(platform)),
+  ]);
   const [adding, setAdding] = useState(false);
   const more = leadPlatformSchema.options.filter((platform) => !shown.includes(platform));
 

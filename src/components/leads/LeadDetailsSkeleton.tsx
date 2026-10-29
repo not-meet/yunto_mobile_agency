@@ -6,14 +6,15 @@ import { usePulse } from '@/hooks/usePulse';
 // Pulsing placeholder in the shape of a lead (hero, tabs, lead-by, links, message, rows,
 // deliverables) shown while it loads.
 
-export function LeadDetailsSkeleton() {
+// `label`: what's loading, for screen readers; a campaign shows this too.
+export function LeadDetailsSkeleton({ label = 'Loading lead' }: { label?: string }) {
   const pulse = usePulse();
 
   return (
     <Animated.View
       style={pulse}
       accessibilityRole="progressbar"
-      accessibilityLabel="Loading lead"
+      accessibilityLabel={label}
       className="gap-[15px] px-[15px] pt-[5px]"
     >
       <View className="h-[205px] gap-3 rounded-3xl bg-white/60 p-6">

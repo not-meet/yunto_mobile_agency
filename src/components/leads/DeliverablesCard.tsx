@@ -1,32 +1,43 @@
-import { Link2, Plus } from 'lucide-react-native';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
-import Animated, {
-  FadeInDown,
-  FadeOut,
-  LinearTransition,
-  useReducedMotion,
-} from 'react-native-reanimated';
+import { Pencil, Plus } from 'lucide-react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated, { LinearTransition, useReducedMotion } from 'react-native-reanimated';
 
-import { openLink } from '@/components/leads/contact';
 import { CONTENT_STYLES } from '@/components/leads/labels';
-import { useAddDeliverableLink } from '@/hooks/useLeads';
-import type { Deliverable, DeliverableLink } from '@/services/leadsService';
-import { PLACEHOLDER_COLOR } from '@/utils/constants';
-import { showToast } from '@/utils/notifications';
-import { normalizeLink, sanitizeLinkInput } from '@/utils/sanitize';
+import type { Deliverable } from '@/services/leadsService';
 
-// What the brand wants made, then a field to attach links to the finished pieces (a posted reel,
-// a Drive folder). Added links slide in under the field, newest first, and open on tap.
+// What the brand wants made, on a lead or its campaign: + adds to the scope, and tapping a
+// deliverable edits it (its quantity and title, or removes it). On a campaign each one also shows
+// how many of its pieces are in, e.g. "1/2".
 
-function DeliverableRow({ deliverable, last }: { deliverable: Deliverable; last: boolean }) {
+// A campaign's deliverables count their pieces instead of carrying a quantity.
+type DeliverableItem = Omit<Deliverable, 'quantity'> & {
+  quantity?: number;
+  done?: number;
+  total?: number;
+};
+
+function DeliverableRow({
+  deliverable,
+  last,
+  onEdit,
+}: {
+  deliverable: DeliverableItem;
+  last: boolean;
+  onEdit: () => void;
+}) {
+  const { done, total } = deliverable;
+  const counted = done !== undefined && total !== undefined;
   const { icon: Icon, color, background } = CONTENT_STYLES[deliverable.type];
 
   return (
-    <View
-      accessible
-      accessibilityLabel={`${deliverable.title}${deliverable.note ? `, ${deliverable.note}` : ''}`}
-      className={`flex-row items-center ${last ? 'pt-3' : 'border-b border-[#F2F2F7] py-3'}`}
+    <Pressable
+      onPress={onEdit}
+      accessibilityRole="button"
+      accessibilityLabel={`${deliverable.title}${deliverable.note ? `, ${deliverable.note}` : ''}${
+        counted ? `, ${done} of ${total} in` : ''
+      }`}
+      accessibilityHint="Edits this deliverable"
+      className={`flex-row items-center active:opacity-70 ${last ? 'pt-3' : 'border-b border-[#F2F2F7] py-3'}`}
     >
       <View
         className="mr-3 h-10 w-10 items-center justify-center rounded-xl"
@@ -47,70 +58,34 @@ function DeliverableRow({ deliverable, last }: { deliverable: Deliverable; last:
           </Text>
         ) : null}
       </View>
-    </View>
-  );
-}
-
-function LinkItem({ link }: { link: DeliverableLink }) {
-  const reduceMotion = useReducedMotion();
-  const label = link.url.replace(/^https:\/\//, '');
-
-  return (
-    <Animated.View
-      entering={reduceMotion ? undefined : FadeInDown.duration(260)}
-      exiting={reduceMotion ? undefined : FadeOut.duration(150)}
-      layout={reduceMotion ? undefined : LinearTransition.duration(220)}
-    >
-      <Pressable
-        onPress={() => openLink(link.url)}
-        accessibilityRole="link"
-        accessibilityLabel={`Open ${label}`}
-        className="flex-row items-center gap-2 rounded-xl bg-[#F9F9F9] px-3 py-2.5 active:opacity-70"
-      >
-        <Link2 size={14} color="#8A8A8E" strokeWidth={1.67} />
+      {counted ? (
         <Text
-          numberOfLines={1}
-          className="flex-1 font-inter-medium text-[13px] leading-4 text-[#1D1D1F]"
+          className={`pl-3 font-inter text-[15px] leading-[22px] tracking-[1px] ${
+            done >= total ? 'text-[#2B9A57]' : 'text-black/70'
+          }`}
         >
-          {label}
+          {done}/{total}
         </Text>
-      </Pressable>
-    </Animated.View>
+      ) : null}
+      <View className="ml-3 h-7 w-7 items-center justify-center rounded-full bg-[#F4F4F6]">
+        <Pencil size={12} color="#1D1D1F" strokeWidth={1.67} />
+      </View>
+    </Pressable>
   );
 }
 
-interface DeliverablesCardProps {
-  leadId: string;
-  deliverables: Deliverable[];
-  links: DeliverableLink[];
+interface DeliverablesCardProps<T extends DeliverableItem> {
+  deliverables: T[];
+  onAdd: () => void;
+  onEdit: (deliverable: T) => void;
 }
 
-export function DeliverablesCard({ leadId, deliverables, links }: DeliverablesCardProps) {
+export function DeliverablesCard<T extends DeliverableItem>({
+  deliverables,
+  onAdd,
+  onEdit,
+}: DeliverablesCardProps<T>) {
   const reduceMotion = useReducedMotion();
-  const addLink = useAddDeliverableLink(leadId);
-  const [text, setText] = useState('');
-  const [invalid, setInvalid] = useState(false);
-
-  const submit = () => {
-    if (!text || addLink.isPending) return;
-    const url = normalizeLink(text);
-    if (!url) {
-      setInvalid(true);
-      return;
-    }
-    addLink.mutate(url, {
-      onSuccess: () => {
-        setText('');
-        showToast('Link added');
-      },
-    });
-  };
-
-  const error = invalid
-    ? 'That doesn’t look like a link. Paste the full address.'
-    : addLink.isError
-      ? 'We couldn’t add that link. Please try again.'
-      : null;
 
   return (
     <Animated.View
@@ -120,11 +95,10 @@ export function DeliverablesCard({ leadId, deliverables, links }: DeliverablesCa
       <View className="flex-row items-center justify-between">
         <Text className="font-inter-semibold text-base leading-5 text-[#1D1D1F]">Deliverables</Text>
         <Pressable
-          // TODO(leads): open the add-deliverable sheet once it's designed.
-          onPress={() => showToast('Adding deliverables is coming soon')}
+          onPress={onAdd}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="Add deliverable"
+          accessibilityLabel="Add deliverables"
           className="h-8 w-8 items-center justify-center rounded-full bg-[#F4F4F6] active:opacity-70"
         >
           <Plus size={14} color="#1D1D1F" strokeWidth={1.67} />
@@ -138,6 +112,7 @@ export function DeliverablesCard({ leadId, deliverables, links }: DeliverablesCa
               key={deliverable.id}
               deliverable={deliverable}
               last={i === deliverables.length - 1}
+              onEdit={() => onEdit(deliverable)}
             />
           ))}
         </View>
@@ -146,62 +121,6 @@ export function DeliverablesCard({ leadId, deliverables, links }: DeliverablesCa
           No deliverables agreed yet.
         </Text>
       )}
-
-      <View className="h-[52px] flex-row items-center rounded-2xl bg-[#F9F9F9] pl-4 pr-2.5">
-        <TextInput
-          value={text}
-          onChangeText={(next) => {
-            setText(sanitizeLinkInput(next));
-            setInvalid(false);
-            if (addLink.isError) addLink.reset();
-          }}
-          onSubmitEditing={submit}
-          placeholder="Add deliverable link..."
-          placeholderTextColor={PLACEHOLDER_COLOR}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          returnKeyType="send"
-          submitBehavior="blurAndSubmit"
-          accessibilityLabel="Deliverable link"
-          className="flex-1 py-0 font-inter text-sm leading-[17px] text-[#1D1D1F]"
-        />
-        <Pressable
-          onPress={submit}
-          disabled={!text || addLink.isPending}
-          accessibilityRole="button"
-          accessibilityLabel="Submit link"
-          accessibilityState={{ disabled: !text, busy: addLink.isPending }}
-          className={`ml-3 h-9 min-w-[84px] items-center justify-center rounded-3xl bg-cocoa px-5 active:opacity-80 ${
-            text ? '' : 'opacity-60'
-          }`}
-        >
-          {addLink.isPending ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text className="text-center font-inter-semibold text-[13px] leading-4 text-white">
-              Submit
-            </Text>
-          )}
-        </Pressable>
-      </View>
-
-      {error ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          className="-mt-2 pl-1 font-inter-medium text-[13px] leading-4 text-rose-500"
-        >
-          {error}
-        </Text>
-      ) : null}
-
-      {links.length > 0 ? (
-        <View className="-mt-1 gap-2">
-          {links.map((link) => (
-            <LinkItem key={link.id} link={link} />
-          ))}
-        </View>
-      ) : null}
     </Animated.View>
   );
 }

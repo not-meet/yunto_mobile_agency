@@ -7,7 +7,8 @@ import { formatCount } from '@/utils/format';
 import { showToast } from '@/utils/notifications';
 
 // The row under a lead's creators title, once it has some (before that the screen's footer adds
-// them): add creators, share the list, download it, and on the right remove the picked ones.
+// them): add creators, share the list, download it, and on the right remove the picked ones
+// (left out without `onRemove`, where the screen removes them some other way).
 
 function QuickAction({
   label,
@@ -48,7 +49,7 @@ interface LeadCreatorsToolbarProps {
   onAdd: () => void;
   // How many cards are picked; Remove asks to pick some first while it's 0.
   selectedCount: number;
-  onRemove: () => void;
+  onRemove?: () => void;
 }
 
 export function LeadCreatorsToolbar({
@@ -81,28 +82,30 @@ export function LeadCreatorsToolbar({
           onPress={() => showToast('Downloading creators is coming soon')}
         />
       </ScrollView>
-      <Pressable
-        onPress={() =>
-          selectedCount > 0 ? onRemove() : showToast('Select the creators to remove first')
-        }
-        accessibilityRole="button"
-        accessibilityLabel={
-          selectedCount > 0 ? `Remove ${selectedCount} selected` : 'Remove creators'
-        }
-        className={`h-[34px] w-[34px] items-center justify-center rounded-full border border-black/5 bg-white active:opacity-70 ${
-          selectedCount > 0 ? '' : 'opacity-50'
-        }`}
-        style={{ boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.04)' }}
-      >
-        <Trash2 size={14} color="#E74C3C" strokeWidth={1.5} />
-        {selectedCount > 0 ? (
-          <View className="absolute -right-1 -top-1 h-4 min-w-4 items-center justify-center rounded-full bg-[#141311] px-1">
-            <Text className="font-inter-bold text-[9px] leading-3 text-[#FAF7F2]">
-              {selectedCount}
-            </Text>
-          </View>
-        ) : null}
-      </Pressable>
+      {onRemove ? (
+        <Pressable
+          onPress={() =>
+            selectedCount > 0 ? onRemove() : showToast('Select the creators to remove first')
+          }
+          accessibilityRole="button"
+          accessibilityLabel={
+            selectedCount > 0 ? `Remove ${selectedCount} selected` : 'Remove creators'
+          }
+          className={`h-[34px] w-[34px] items-center justify-center rounded-full border border-black/5 bg-white active:opacity-70 ${
+            selectedCount > 0 ? '' : 'opacity-50'
+          }`}
+          style={{ boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.04)' }}
+        >
+          <Trash2 size={14} color="#E74C3C" strokeWidth={1.5} />
+          {selectedCount > 0 ? (
+            <View className="absolute -right-1 -top-1 h-4 min-w-4 items-center justify-center rounded-full bg-[#141311] px-1">
+              <Text className="font-inter-bold text-[9px] leading-3 text-[#FAF7F2]">
+                {selectedCount}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
+      ) : null}
     </View>
   );
 }

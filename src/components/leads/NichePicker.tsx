@@ -18,7 +18,11 @@ interface NichePickerProps {
 }
 
 export function NichePicker({ selected, onChange }: NichePickerProps) {
-  const [options, setOptions] = useState(PRESET_NICHES);
+  // Any picked already (editing requirements) are listed too.
+  const [options, setOptions] = useState(() => [
+    ...PRESET_NICHES,
+    ...selected.filter((niche) => !PRESET_NICHES.includes(niche)),
+  ]);
   const [adding, setAdding] = useState(false);
 
   const add = (typed: string[]) => {

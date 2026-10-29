@@ -1,16 +1,18 @@
-import { ChevronDown } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { ChevronDown, Phone } from 'lucide-react-native';
+import { type ReactNode, useRef, useState } from 'react';
 import { Pressable, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 
 import { DropdownMenu } from '@/components/common/DropdownMenu';
+import { callNumber, openWhatsApp } from '@/components/leads/contact';
 import { CreatorAvatar } from '@/components/leads/CreatorAvatar';
 import { CREATOR_STATUS_LABELS } from '@/components/leads/labels';
+import { WhatsAppIcon } from '@/components/leads/WhatsAppIcon';
 import type { LeadCreatorDetails } from '@/services/leadCreatorsService';
 import { dayMonth, fromDateKey } from '@/utils/dates';
 import { groupDigits } from '@/utils/format';
 
 // Top card of a creator on a lead: who they are, their niche and city, the status (tap to change
-// it), and the deal at a glance.
+// it; hidden on a campaign), WhatsApp and Call buttons, and the deal at a glance.
 
 type SettableStatus = 'pending' | 'shortlisted' | 'done';
 
@@ -48,14 +50,40 @@ function Fact({ label, value, end }: { label: string; value: string; end?: boole
   );
 }
 
-interface CreatorHeroProps {
-  creator: LeadCreatorDetails;
-  onStatusChange: (status: SettableStatus) => void;
-  // A status change is in flight; the pill can't be opened again until it lands.
-  updating: boolean;
+function ContactButton({
+  label,
+  icon,
+  onPress,
+  accessibilityLabel,
+}: {
+  label: string;
+  icon: ReactNode;
+  onPress: () => void;
+  accessibilityLabel: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      className="h-10 flex-1 flex-row items-center justify-center gap-2 rounded-full bg-white/80 active:opacity-70"
+      style={{ boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)' }}
+    >
+      {icon}
+      <Text className="font-inter-semibold text-[13px] leading-4 text-[#141311]">{label}</Text>
+    </Pressable>
+  );
 }
 
-export function CreatorHero({ creator, onStatusChange, updating }: CreatorHeroProps) {
+interface CreatorHeroProps {
+  creator: LeadCreatorDetails;
+  // Left out, there's no status pill (on a campaign, where the only action is marking them done).
+  onStatusChange?: (status: SettableStatus) => void;
+  // A status change is in flight; the pill can't be opened again until it lands.
+  updating?: boolean;
+}
+
+export function CreatorHero({ creator, onStatusChange, updating = false }: CreatorHeroProps) {
   const { width } = useWindowDimensions();
   const pill = useRef<View>(null);
   const [menu, setMenu] = useState<ViewStyle | null>(null);
@@ -100,25 +128,42 @@ export function CreatorHero({ creator, onStatusChange, updating }: CreatorHeroPr
             </View>
           </View>
         </View>
-        <Pressable
-          ref={pill}
-          onPress={openMenu}
-          disabled={updating}
-          accessibilityRole="button"
-          accessibilityLabel={`Status, ${CREATOR_STATUS_LABELS[creator.status]}. Change status`}
-          accessibilityState={{ expanded: menu !== null, busy: updating }}
-          className={`flex-row items-center gap-1.5 rounded-full bg-[#141311] px-3 py-2 active:opacity-80 ${
-            updating ? 'opacity-60' : ''
-          }`}
-          style={{
-            boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1)',
-          }}
-        >
-          <Text className="font-inter-bold text-[10px] leading-[15px] tracking-[0.25px] text-[#FAF7F2]">
-            {CREATOR_STATUS_LABELS[creator.status]}
-          </Text>
-          <ChevronDown size={10} color="#FAF7F2" strokeWidth={2} />
-        </Pressable>
+        {onStatusChange ? (
+          <Pressable
+            ref={pill}
+            onPress={openMenu}
+            disabled={updating}
+            accessibilityRole="button"
+            accessibilityLabel={`Status, ${CREATOR_STATUS_LABELS[creator.status]}. Change status`}
+            accessibilityState={{ expanded: menu !== null, busy: updating }}
+            className={`flex-row items-center gap-1.5 rounded-full bg-[#141311] px-3 py-2 active:opacity-80 ${
+              updating ? 'opacity-60' : ''
+            }`}
+            style={{
+              boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <Text className="font-inter-bold text-[10px] leading-[15px] tracking-[0.25px] text-[#FAF7F2]">
+              {CREATOR_STATUS_LABELS[creator.status]}
+            </Text>
+            <ChevronDown size={10} color="#FAF7F2" strokeWidth={2} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      <View className="flex-row gap-2">
+        <ContactButton
+          label="WhatsApp"
+          icon={<WhatsAppIcon size={16} />}
+          onPress={() => openWhatsApp(creator.phone, creator.name)}
+          accessibilityLabel={`WhatsApp ${creator.name}`}
+        />
+        <ContactButton
+          label="Call"
+          icon={<Phone size={15} color="#3A5C7E" strokeWidth={1.75} />}
+          onPress={() => callNumber(creator.phone, creator.name)}
+          accessibilityLabel={`Call ${creator.name}`}
+        />
       </View>
 
       <View
@@ -144,7 +189,7 @@ export function CreatorHero({ creator, onStatusChange, updating }: CreatorHeroPr
         options={STATUS_OPTIONS}
         selected={creator.status === 'UNKNOWN' ? undefined : creator.status}
         onSelect={(status) => {
-          if (status !== creator.status) onStatusChange(status);
+          if (status !== creator.status) onStatusChange?.(status);
         }}
         position={menu ?? {}}
         label="Creator status"

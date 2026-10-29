@@ -46,7 +46,8 @@ const CONFIRM_COPY = {
 } as const;
 
 // One lead: its details and its notes & activity, with follow up / mark converted pinned to the
-// bottom and delete in the header. Opened from a lead card with the lead's `id`.
+// bottom and delete in the header. Converting opens the new campaign; once converted, the button
+// reads "View Campaign" and opens it. Opened from a lead card with the lead's `id`.
 export default function LeadDetailsScreen() {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
@@ -67,6 +68,10 @@ export default function LeadDetailsScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const action = confirming === 'convert' ? convert : remove;
 
+  const openCampaign = (campaignId: string | null) => {
+    if (campaignId) router.push({ pathname: '/campaigns/[id]', params: { id: campaignId } });
+  };
+
   const ask = (next: Confirming) => {
     if (convert.isPending || remove.isPending) return;
     convert.reset();
@@ -79,9 +84,10 @@ export default function LeadDetailsScreen() {
     if (!data) return;
     if (confirming === 'convert') {
       convert.mutate(undefined, {
-        onSuccess: () => {
+        onSuccess: (converted) => {
           setSheetOpen(false);
           showToast(`${data.name} is now a campaign`);
+          openCampaign(converted.campaignId);
         },
       });
     } else {
@@ -169,8 +175,11 @@ export default function LeadDetailsScreen() {
 
           <LeadActionsBar
             onFollowUp={() => setFollowUpOpen(true)}
-            onConvert={() => ask('convert')}
-            converted={data.status === 'campaign'}
+            primary={
+              data.campaignId
+                ? { label: 'View Campaign', onPress: () => openCampaign(data.campaignId) }
+                : { label: 'Mark Converted', onPress: () => ask('convert') }
+            }
           />
           <FollowUpSheet
             leadId={data.id}

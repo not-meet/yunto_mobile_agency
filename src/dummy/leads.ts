@@ -1,11 +1,12 @@
 import { mockFindCreator } from '@/dummy/creators';
+import { mockGetMembers } from '@/dummy/team';
 import { ApiError } from '@/utils/api';
 import { addDays, fromDateKey, toDateKey } from '@/utils/dates';
 
 // TEMPORARY fixtures + handlers for the leads screens. Delete with the folder.
 //
-// Held in memory only: deletes, intents, conversions, links, notes and follow-ups are gone after a
-// restart. Times are fixed at launch, so they don't move on each refetch.
+// Held in memory only: deletes, intents, conversions, deliverables, assignees, notes and
+// follow-ups are gone after a restart. Times are fixed at launch, so they don't move on each refetch.
 
 const LAUNCHED_AT = Date.now();
 const HOUR_MS = 60 * 60_000;
@@ -35,11 +36,44 @@ interface MockLead {
   website?: string | null;
   ownerIndex: number | null;
   message: string | null;
+  // Left out: the brand gave none, so every field is empty.
+  requirements?: MockRequirements;
   addOns: MockRole[];
   intent?: 'low' | 'medium' | 'high' | null;
   // Set when the lead is deleted; it's kept, just no longer shown.
   deletedAt?: string;
+  // Set when it's converted in this session; the seeded campaigns predate launch.
+  convertedAt?: string;
 }
+
+type MockPlatform = 'instagram' | 'youtube' | 'facebook' | 'linkedin' | 'x';
+
+interface MockRequirements {
+  platforms: MockPlatform[];
+  niches: string[];
+  location: string | null;
+  creators: number | null;
+  genders: ('female' | 'male' | 'other')[];
+  languages: string[];
+  ageRanges: ('18-24' | '25-34' | '35-44' | '45+')[];
+  followerTiers: ('nano' | 'micro' | 'macro' | 'mega')[];
+  dueDate: string | null;
+}
+
+const NO_REQUIREMENTS: MockRequirements = {
+  platforms: [],
+  niches: [],
+  location: null,
+  creators: null,
+  genders: [],
+  languages: [],
+  ageRanges: [],
+  followerTiers: [],
+  dueDate: null,
+};
+
+// "YYYY-MM-DD", `days` after launch.
+const dueIn = (days: number) => toDateKey(addDays(new Date(LAUNCHED_AT), days));
 
 const OWNERS = [
   { name: 'Leena Sharma', avatarUrl: avatar('leena'), phone: '+919811002233' },
@@ -66,6 +100,17 @@ const LEADS: MockLead[] = [
     campaign: 'Winter in Manali',
     ownerIndex: 0,
     message: MANALI_MESSAGE,
+    requirements: {
+      platforms: ['instagram'],
+      niches: ['Travel', 'Lifestyle'],
+      location: 'Manali',
+      creators: 4,
+      genders: ['female', 'male'],
+      languages: ['English', 'Hindi'],
+      ageRanges: ['18-24', '25-34'],
+      followerTiers: ['micro', 'macro'],
+      dueDate: dueIn(45),
+    },
     addOns: ['videographer', 'editor'],
   },
   {
@@ -83,7 +128,13 @@ const LEADS: MockLead[] = [
     campaign: 'Monsoon Care',
     ownerIndex: 1,
     message:
-      'Hey team! We loved the skincare reels from your roster last month. We want two creators for our monsoon hair-care launch, one reel each, posting in the first week of July.',
+      'Hey team! We loved the skincare reels from your roster last month. We want two creators for our monsoon hair-care launch, one reel each, posting in the first week of July.\n\nGender: Female Location: Agra\n\nPlatforms\nInstagram',
+    requirements: {
+      ...NO_REQUIREMENTS,
+      platforms: ['instagram'],
+      genders: ['female'],
+      location: 'Agra',
+    },
     addOns: ['editor'],
   },
   {
@@ -137,6 +188,17 @@ const LEADS: MockLead[] = [
     ownerIndex: 1,
     message:
       'Looking for 3 lifestyle creators to feature our blue-light lenses in a work-from-café reel.',
+    requirements: {
+      platforms: ['instagram', 'youtube'],
+      niches: ['Lifestyle', 'Tech'],
+      location: 'Bengaluru',
+      creators: 3,
+      genders: [],
+      languages: ['English'],
+      ageRanges: ['25-34'],
+      followerTiers: ['micro'],
+      dueDate: dueIn(12),
+    },
     addOns: ['editor'],
   },
   {
@@ -155,6 +217,17 @@ const LEADS: MockLead[] = [
     ownerIndex: 2,
     message:
       'We want a GRWM reel with our new vitamin C range. Open to your suggestions on creators.',
+    requirements: {
+      platforms: ['instagram'],
+      niches: ['Beauty'],
+      location: 'Agra',
+      creators: 15,
+      genders: ['female'],
+      languages: ['English'],
+      ageRanges: ['18-24', '25-34'],
+      followerTiers: ['micro', 'macro'],
+      dueDate: null,
+    },
     addOns: [],
   },
   {
@@ -171,7 +244,8 @@ const LEADS: MockLead[] = [
     phone: '+919812340005',
     campaign: null,
     ownerIndex: null,
-    message: 'Hi, can you share your rate card for static posts? We have a merch drop next month.',
+    message:
+      'Hi, can you share your rate card for static posts? We have a merch drop next month.\n\nGender: Male Location: Mumbai\n\nPlatforms\nInstagram, YouTube',
     addOns: [],
   },
   {
@@ -188,7 +262,9 @@ const LEADS: MockLead[] = [
     phone: '+919812340006',
     campaign: 'Staycation Edit',
     ownerIndex: 0,
-    message: 'Two-night staycation at Taj Lands End for a couple creator. Reel and three stories.',
+    message:
+      'Two-night staycation at Taj Lands End for a couple creator. Reel and three stories.\n\nLocation: Mumbai\n\nPlatforms\nInstagram',
+    requirements: { ...NO_REQUIREMENTS, platforms: ['instagram'], location: 'Mumbai', creators: 1 },
     addOns: ['videographer'],
   },
   {
@@ -261,16 +337,88 @@ const LEADS: MockLead[] = [
   },
 ];
 
-const DELIVERABLES: Record<MockContentType, { title: string; note: string }> = {
-  reel: { title: '1 Reel', note: 'Needs script' },
-  story: { title: '2 Stories', note: 'Pending shoot' },
-  post: { title: '1 Post', note: 'Awaiting brief' },
+// PUT /leads/:id/requirements. Replaces them whole. Its campaign shares them.
+export function mockSetLeadRequirements(id: string, payload: MockRequirements | undefined) {
+  if (!payload)
+    throw new ApiError('Invalid requirements', 400, { message: 'Invalid requirements' });
+  const lead = findLead(id);
+  lead.requirements = payload;
+  return { lead: toDetails(lead) };
+}
+
+// PUT /leads/:id/assignees. Teammate ids, the first the primary; seeded by the lead's place in
+// the list until first changed.
+const SEED_ASSIGNEES = [['parul'], [], ['karan', 'neha'], ['priya']];
+const assigneeRecords = new Map<string, string[]>();
+
+function getAssigneeIds(lead: MockLead): string[] {
+  return (
+    assigneeRecords.get(lead.id) ??
+    SEED_ASSIGNEES[LEADS.indexOf(lead) % SEED_ASSIGNEES.length] ??
+    []
+  );
+}
+
+function toAssignees(lead: MockLead) {
+  const members = mockGetMembers().members;
+  return getAssigneeIds(lead).flatMap((id) => {
+    const member = members.find((m) => m.id === id);
+    return member ? [{ id: member.id, name: member.name, avatarUrl: member.avatarUrl }] : [];
+  });
+}
+
+const DELIVERABLES: Record<MockContentType, { quantity: number; note: string }> = {
+  reel: { quantity: 1, note: 'Pending shoot' },
+  story: { quantity: 2, note: 'Pending shoot' },
+  post: { quantity: 1, note: 'Awaiting brief' },
 };
 
 const AGENCY_CUT = 0.2;
 
-// POST /leads/:id/links
-const links = new Map<string, { id: string; url: string; addedAt: string }[]>();
+// GET/POST /leads/:id/deliverables, PUT and DELETE /leads/:id/deliverables/:deliverableId. A
+// lead's campaign shares them. Seeded from what the brand asked for until first changed.
+
+type MockDeliverableType = 'reel' | 'post' | 'story' | 'ugc';
+interface MockDeliverable {
+  id: string;
+  type: MockDeliverableType;
+  title: string;
+  note: string | null;
+  quantity: number;
+}
+
+const DELIVERABLE_NAMES: Record<MockDeliverableType, [string, string]> = {
+  reel: ['Reel', 'Reels'],
+  post: ['Post', 'Posts'],
+  story: ['Story', 'Stories'],
+  ugc: ['UGC Ad', 'UGC Ads'],
+};
+
+// "2 Reels".
+function deliverableTitle(type: MockDeliverableType, quantity: number) {
+  const [one, many] = DELIVERABLE_NAMES[type];
+  return `${quantity} ${quantity === 1 ? one : many}`;
+}
+
+const deliverableRecords = new Map<string, MockDeliverable[]>();
+
+function getDeliverables(lead: MockLead): MockDeliverable[] {
+  let records = deliverableRecords.get(lead.id);
+  if (!records) {
+    records = lead.contentTypes.map((type, i) => {
+      const { quantity, note } = DELIVERABLES[type];
+      return {
+        id: `${lead.id}_dlv_${i + 1}`,
+        type,
+        title: deliverableTitle(type, quantity),
+        note,
+        quantity,
+      };
+    });
+    deliverableRecords.set(lead.id, records);
+  }
+  return records;
+}
 
 function findLead(id: string): MockLead {
   const lead = LEADS.find((l) => l.id === id && !l.deletedAt);
@@ -317,13 +465,11 @@ function toDetails(lead: MockLead) {
     email: lead.email !== undefined ? lead.email : lead.brand ? `collabs@${slug}.com` : null,
     website: lead.website !== undefined ? lead.website : lead.brand ? `${slug}.com` : null,
     message: lead.message,
-    deliverables: lead.contentTypes.map((type, i) => ({
-      id: `${lead.id}_dlv_${i + 1}`,
-      type,
-      ...DELIVERABLES[type],
-    })),
-    links: links.get(lead.id) ?? [],
+    requirements: lead.requirements ?? NO_REQUIREMENTS,
+    assignees: toAssignees(lead),
+    deliverables: getDeliverables(lead),
     addOns: lead.addOns,
+    campaignId: lead.status === 'campaign' ? mockCampaignIdFor(lead.id) : null,
     intent: lead.intent ?? null,
     payment: {
       amount: lead.budget,
@@ -331,6 +477,14 @@ function toDetails(lead: MockLead) {
       payout: lead.budget === null || fee === null ? null : lead.budget - fee,
     },
   };
+}
+
+// One campaign per lead, so its id follows from the lead's.
+export const mockCampaignIdFor = (leadId: string) => `cmp_${leadId}`;
+
+// For the campaigns fixtures: when the lead was converted, or null for a seeded campaign.
+export function mockLeadConvertedAt(id: string): string | null {
+  return findLead(id).convertedAt ?? null;
 }
 
 // GET /leads
@@ -352,6 +506,7 @@ export function mockConvertLead(id: string) {
   if (lead.status !== 'campaign') {
     lead.status = 'campaign';
     lead.needsResponse = false;
+    lead.convertedAt = new Date().toISOString();
     getActivityRecord(id).activity.unshift({
       id: `lact_${Date.now()}`,
       type: 'converted',
@@ -364,7 +519,6 @@ export function mockConvertLead(id: string) {
 
 // POST /leads. The lead joins the list as new, unassigned and with no message.
 
-type MockPlatform = 'instagram' | 'youtube' | 'facebook' | 'linkedin' | 'x';
 interface MockNewLead {
   campaignType: 'paid' | 'barter';
   platforms: MockPlatform[];
@@ -403,6 +557,13 @@ export function mockCreateLead(payload: MockNewLead | undefined) {
     campaign: null,
     ownerIndex: null,
     message: null,
+    // What the Add Lead form asked; the rest is filled in on the lead.
+    requirements: {
+      ...NO_REQUIREMENTS,
+      platforms: payload.platforms,
+      niches: payload.niches,
+      creators: payload.influencers,
+    },
     addOns: [],
     email: payload.email,
     website,
@@ -455,12 +616,73 @@ export function mockSetLeadIntent(
   return { lead: toDetails(lead) };
 }
 
-export function mockAddDeliverableLink(id: string, payload: { url: string } | undefined) {
-  if (!payload) throw new ApiError('Invalid link', 400, { message: 'Invalid link' });
-  findLead(id);
-  const link = { id: `lnk_${Date.now()}`, url: payload.url, addedAt: new Date().toISOString() };
-  links.set(id, [link, ...(links.get(id) ?? [])]);
-  return { link };
+// PUT /leads/:id/assignees
+export function mockSetLeadAssignees(id: string, payload: { memberIds: string[] } | undefined) {
+  if (!payload) throw new ApiError('Bad request', 400, { message: 'Bad request' });
+  const lead = findLead(id);
+  assigneeRecords.set(lead.id, payload.memberIds);
+  return { lead: toDetails(lead) };
+}
+
+// POST /leads/:id/deliverables. One deliverable per type, e.g. "2 Reels".
+export function mockAddLeadDeliverables(
+  id: string,
+  payload:
+    | {
+        platform: 'instagram';
+        items: { type: MockDeliverableType; quantity: number }[];
+        title: string | null;
+      }
+    | undefined,
+) {
+  if (!payload) throw new ApiError('Bad request', 400, { message: 'Bad request' });
+  const lead = findLead(id);
+  const records = getDeliverables(lead);
+  const now = Date.now();
+  payload.items.forEach(({ type, quantity }, i) => {
+    records.push({
+      id: `${lead.id}_dlv_${now}_${i}`,
+      type,
+      title: deliverableTitle(type, quantity),
+      note: payload.title ?? 'Instagram',
+      quantity,
+    });
+  });
+  return { lead: toDetails(lead) };
+}
+
+function findDeliverable(lead: MockLead, deliverableId: string) {
+  const deliverable = getDeliverables(lead).find((d) => d.id === deliverableId);
+  if (!deliverable) {
+    throw new ApiError('Deliverable not found', 404, { message: 'Deliverable not found' });
+  }
+  return deliverable;
+}
+
+// PUT /leads/:id/deliverables/:deliverableId
+export function mockUpdateLeadDeliverable(
+  id: string,
+  deliverableId: string,
+  payload: { quantity: number; title: string | null } | undefined,
+) {
+  if (!payload) throw new ApiError('Bad request', 400, { message: 'Bad request' });
+  const lead = findLead(id);
+  const deliverable = findDeliverable(lead, deliverableId);
+  deliverable.quantity = payload.quantity;
+  deliverable.title = deliverableTitle(deliverable.type, payload.quantity);
+  deliverable.note = payload.title;
+  return { lead: toDetails(lead) };
+}
+
+// DELETE /leads/:id/deliverables/:deliverableId
+export function mockRemoveLeadDeliverable(id: string, deliverableId: string) {
+  const lead = findLead(id);
+  findDeliverable(lead, deliverableId);
+  deliverableRecords.set(
+    lead.id,
+    getDeliverables(lead).filter((d) => d.id !== deliverableId),
+  );
+  return { lead: toDetails(lead) };
 }
 
 // GET /leads/:id/activity, POST /leads/:id/notes and /leads/:id/follow-ups. Every lead starts
@@ -732,9 +954,61 @@ const CREATOR_POOL: Omit<MockCreator, 'activity'>[] = [
     engagementChange: 0.3,
     delivered: 0,
   },
+  {
+    id: 'naina',
+    name: 'Naina Joshi',
+    handle: '@naina.makes',
+    avatarUrl: creatorAvatar('naina'),
+    platform: 'instagram',
+    niche: 'Crafts & DIY',
+    status: 'pending',
+    followers: 128_000,
+    avgViews: 64_000,
+    engagementRate: 7.4,
+    location: 'Jaipur, RJ',
+    budget: 18_000,
+    followersGrowth: 9.2,
+    engagementChange: 1.1,
+    delivered: 0,
+  },
+  {
+    id: 'arjun',
+    name: 'Arjun Nair',
+    handle: '@arjun.lens',
+    avatarUrl: creatorAvatar('arjun'),
+    platform: 'instagram',
+    niche: 'Artists & Films',
+    status: 'shortlisted',
+    followers: 98_000,
+    avgViews: 41_000,
+    engagementRate: 6.8,
+    location: 'Kochi, KL',
+    budget: 14_000,
+    followersGrowth: 4.3,
+    engagementChange: 0.8,
+    delivered: 0,
+  },
+  {
+    id: 'zoya',
+    name: 'Zoya Khan',
+    handle: '@zoya.paints',
+    avatarUrl: creatorAvatar('zoya'),
+    platform: 'instagram',
+    niche: 'Crafts & DIY',
+    status: 'pending',
+    followers: 42_000,
+    avgViews: 18_000,
+    engagementRate: 8.2,
+    location: 'Lucknow, UP',
+    budget: null,
+    followersGrowth: 11.5,
+    engagementChange: null,
+    delivered: 0,
+  },
 ];
 
-const CREATORS_PER_LEAD = 5;
+// Enough that most leads have someone in every tier.
+const CREATORS_PER_LEAD = 8;
 
 const CREATOR_DELIVERABLES: Record<MockContentType, string> = {
   reel: '1x Instagram Reel',
@@ -811,7 +1085,11 @@ function findCreator(leadId: string, creatorId: string): MockCreator {
 function toCreatorListItem(creator: MockCreator) {
   const { id, name, handle, avatarUrl, platform, niche, status } = creator;
   const { followers, avgViews, engagementRate } = creator;
+  // Who manages them and their number are the roster's.
+  const { managedBy, phone } = mockFindCreator(id);
   return {
+    managedBy,
+    phone,
     id,
     name,
     handle,

@@ -3,7 +3,6 @@ import {
   Link2,
   type LucideIcon,
   MapPin,
-  MessageCircle,
   Phone,
   Share2,
   TrendingDown,
@@ -15,15 +14,14 @@ import { Pressable, Share, Text, View } from 'react-native';
 import { Avatar } from '@/components/common/Avatar';
 import { SUGGESTION_LABELS } from '@/components/creators/labels';
 import { ProfilePanel } from '@/components/creators/ProfilePanel';
-import { callNumber, openLink, openWhatsApp } from '@/components/leads/contact';
-import { InstagramIcon, YoutubeIcon } from '@/components/leads/PlatformIcons';
+import { callNumber, openWhatsApp } from '@/components/leads/contact';
+import { WhatsAppIcon } from '@/components/leads/WhatsAppIcon';
 import type { CreatorDetails } from '@/services/creatorsService';
 import { formatCount } from '@/utils/format';
 import { showToast } from '@/utils/notifications';
 
-// Top of a creator's profile: photo, name and handle with WhatsApp, Call and their Instagram and
-// YouTube pages (when known), their niche,
-// categories and city, how they compare and what to do with their rate, their public link, and
+// Top of a creator's profile: photo, name and handle with WhatsApp and Call buttons (their
+// platform pages open from each platform's card), their niche, categories and city, how they compare and what to do with their rate, their public link, and
 // their reach and rating at a glance (two by two, as on the web profile).
 
 const SHADOW = '0px 4px 14px rgba(0, 0, 0, 0.1)';
@@ -60,31 +58,28 @@ function Pill({
   );
 }
 
+// Icon-only, tinted with the icon's colour.
 function ContactButton({
   label,
   icon,
-  color,
   rgb,
   onPress,
 }: {
   label: string;
   icon: ReactNode;
-  color: string;
   rgb: string;
   onPress: () => void;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      hitSlop={4}
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="h-8 flex-row items-center gap-1.5 rounded-full border px-3 active:opacity-70"
+      className="h-9 w-9 items-center justify-center rounded-full border active:opacity-70"
       style={{ backgroundColor: `rgba(${rgb}, 0.09)`, borderColor: `rgba(${rgb}, 0.22)` }}
     >
       {icon}
-      <Text className="font-inter-semibold text-xs leading-[18px]" style={{ color }}>
-        {label}
-      </Text>
     </Pressable>
   );
 }
@@ -92,10 +87,6 @@ function ContactButton({
 export function ProfileCard({ creator }: { creator: CreatorDetails }) {
   const above = creator.vsAverage >= 0;
   const link = creator.profileUrl.replace(/^https:\/\//, '');
-  const pageUrl = (platform: 'instagram' | 'youtube') =>
-    creator.platforms.find((p) => p.platform === platform)?.url ?? null;
-  const instagram = pageUrl('instagram');
-  const youtube = pageUrl('youtube');
   const stats = [
     [
       { label: 'Followers', value: formatCount(creator.followers) },
@@ -142,39 +133,19 @@ export function ProfileCard({ creator }: { creator: CreatorDetails }) {
             >
               {creator.handle}
             </Text>
-            <View className="flex-row flex-wrap gap-2 pt-[11px]">
+            <View className="flex-row gap-2 pt-[11px]">
               <ContactButton
-                label="WhatsApp"
-                icon={<MessageCircle size={12} color="#3E7D52" strokeWidth={1.75} />}
-                color="#3E7D52"
+                label={`WhatsApp ${creator.name}`}
+                icon={<WhatsAppIcon size={16} />}
                 rgb="62, 125, 82"
                 onPress={() => openWhatsApp(creator.phone, creator.name)}
               />
               <ContactButton
-                label="Call"
-                icon={<Phone size={12} color="#3A5C7E" strokeWidth={1.75} />}
-                color="#3A5C7E"
+                label={`Call ${creator.name}`}
+                icon={<Phone size={15} color="#3A5C7E" strokeWidth={1.75} />}
                 rgb="58, 92, 126"
                 onPress={() => callNumber(creator.phone, creator.name)}
               />
-              {instagram ? (
-                <ContactButton
-                  label="Instagram"
-                  icon={<InstagramIcon size={12} color="#6A3A7E" />}
-                  color="#6A3A7E"
-                  rgb="106, 58, 126"
-                  onPress={() => openLink(instagram)}
-                />
-              ) : null}
-              {youtube ? (
-                <ContactButton
-                  label="YouTube"
-                  icon={<YoutubeIcon size={12} color="#CC3A3A" />}
-                  color="#CC3A3A"
-                  rgb="204, 58, 58"
-                  onPress={() => openLink(youtube)}
-                />
-              ) : null}
             </View>
           </View>
         </View>

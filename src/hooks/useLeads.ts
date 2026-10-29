@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
-  addDeliverableLink,
+  addLeadDeliverables,
+  type AddDeliverablesInput,
   convertLead,
   createLead,
   type CreateLeadRequest,
@@ -11,7 +12,13 @@ import {
   type Lead,
   type LeadDetails,
   type LeadIntent,
+  removeLeadDeliverable,
+  setLeadAssignees,
   setLeadIntent,
+  setLeadRequirements,
+  type SetRequirementsInput,
+  type UpdateDeliverableInput,
+  updateLeadDeliverable,
 } from '@/services/leadsService';
 import { newIdempotencyKey } from '@/utils/api';
 import { STALE_TIME } from '@/utils/queryCache';
@@ -20,6 +27,7 @@ const LEADS_KEY = ['leads'];
 const leadKey = (id: string) => ['leads', id];
 // Home's Lead Matrix and "new leads" nudge count these.
 const HOME_KEY = ['home'];
+const CAMPAIGNS_KEY = ['campaigns'];
 
 export function useLeads() {
   return useQuery({ queryKey: LEADS_KEY, queryFn: getLeads, staleTime: STALE_TIME.live });
@@ -62,6 +70,8 @@ export function useConvertLead(id: string) {
       // The conversion is logged on the timeline.
       void queryClient.invalidateQueries({ queryKey: [...leadKey(id), 'activity'] });
       void queryClient.invalidateQueries({ queryKey: HOME_KEY });
+      // It joins the campaigns list.
+      void queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY, exact: true });
     },
   });
 }
@@ -109,15 +119,63 @@ export function useSetLeadIntent(id: string) {
   });
 }
 
-export function useAddDeliverableLink(id: string) {
+export function useSetLeadAssignees(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    // Each submit is one user action, so it gets its own Idempotency-Key.
-    mutationFn: (url: string) => addDeliverableLink(id, url, newIdempotencyKey()),
-    onSuccess: (link) => {
-      queryClient.setQueryData<LeadDetails>(leadKey(id), (lead) =>
-        lead ? { ...lead, links: [link, ...lead.links] } : lead,
-      );
-    },
+    mutationFn: (memberIds: string[]) => setLeadAssignees(id, memberIds),
+    onSuccess: (lead) => queryClient.setQueryData(leadKey(id), lead),
+  });
+}
+
+// Puts the lead as it is now in the cache. Its campaign shares the deliverables, so that's
+// refetched too.
+function useStoreDeliverables(id: string) {
+  const queryClient = useQueryClient();
+  return (lead: LeadDetails) => {
+    queryClient.setQueryData(leadKey(id), lead);
+    if (lead.campaignId) {
+      void queryClient.invalidateQueries({ queryKey: [...CAMPAIGNS_KEY, lead.campaignId] });
+    }
+  };
+}
+
+// The campaign shares them too.
+export function useSetLeadRequirements(id: string) {
+  const store = useStoreDeliverables(id);
+  return useMutation({
+    mutationFn: (requirements: SetRequirementsInput) => setLeadRequirements(id, requirements),
+    onSuccess: store,
+  });
+}
+
+export function useAddLeadDeliverables(id: string) {
+  const store = useStoreDeliverables(id);
+  return useMutation({
+    // Each add is one user action, so it gets its own Idempotency-Key.
+    mutationFn: (input: AddDeliverablesInput) =>
+      addLeadDeliverables(id, input, newIdempotencyKey()),
+    onSuccess: store,
+  });
+}
+
+export function useUpdateLeadDeliverable(id: string) {
+  const store = useStoreDeliverables(id);
+  return useMutation({
+    mutationFn: ({
+      deliverableId,
+      input,
+    }: {
+      deliverableId: string;
+      input: UpdateDeliverableInput;
+    }) => updateLeadDeliverable(id, deliverableId, input),
+    onSuccess: store,
+  });
+}
+
+export function useRemoveLeadDeliverable(id: string) {
+  const store = useStoreDeliverables(id);
+  return useMutation({
+    mutationFn: (deliverableId: string) => removeLeadDeliverable(id, deliverableId),
+    onSuccess: store,
   });
 }

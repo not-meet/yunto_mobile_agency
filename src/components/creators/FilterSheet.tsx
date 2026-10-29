@@ -1,11 +1,10 @@
-import { Check, ChevronDown, Sparkles, Square, SquareCheck } from 'lucide-react-native';
+import { Check, ChevronDown, Monitor, Sparkles, Square, SquareCheck } from 'lucide-react-native';
 import { type ReactNode, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, useReducedMotion } from 'react-native-reanimated';
 
 import { BottomSheet } from '@/components/common/BottomSheet';
 import { Button } from '@/components/common/Button';
-import { Switch } from '@/components/common/Switch';
 import { FollowerRangeSlider } from '@/components/creators/FollowerRangeSlider';
 import {
   AGE_RANGE_LABELS,
@@ -18,6 +17,7 @@ import {
   GENDER_LABELS,
   SERVICE_LABELS,
 } from '@/components/creators/labels';
+import { WebOnlySheet } from '@/components/creators/WebOnlySheet';
 import { toggle } from '@/components/talent/BookingChips';
 import {
   ageRangeSchema,
@@ -43,8 +43,6 @@ import { groupDigits } from '@/utils/format';
 
 const GENDERS = creatorGenderSchema.options;
 const BUDGET_DIGITS = String(FILTER_BUDGET_MAX).length;
-// Off until Creator AI is wired to the list.
-const CREATOR_AI_ENABLED = false;
 // A long list (Location) scrolls inside its dropdown past this height.
 const LIST_MAX_HEIGHT = 280;
 
@@ -224,44 +222,46 @@ function AmountField({
   );
 }
 
-// Not wired to the list yet, as on yunto-private.
-function CreatorAiCard() {
-  const [on, setOn] = useState(true);
-  const [website, setWebsite] = useState('');
-  const [product, setProduct] = useState('');
-  const field = (value: string, set: (next: string) => void, placeholder: string) => (
-    <View className="h-10 flex-row items-center gap-2 rounded-xl border border-[#ECE6FF] bg-white px-3">
-      <Sparkles size={13} color="#7A5AF8" strokeWidth={1.75} />
-      <TextInput
-        value={value}
-        onChangeText={set}
-        placeholder={placeholder}
-        placeholderTextColor={PLACEHOLDER_COLOR}
-        accessibilityLabel={placeholder}
-        autoCapitalize="none"
-        keyboardType="url"
-        className="flex-1 py-0 font-inter text-[13px] leading-4 text-[#111827]"
-      />
-    </View>
-  );
-
+// Creator AI runs on the web only: the card shows it with its switch stuck off, and a tap
+// explains why (WebOnlySheet).
+function CreatorAiCard({ onPress }: { onPress: () => void }) {
   return (
-    <View className="gap-2.5 rounded-2xl border border-[#ECE6FF] bg-[#F6F4FF] p-3">
-      <View className="flex-row items-center gap-3">
-        <View className="h-9 w-9 items-center justify-center rounded-xl bg-[#EEE9FF]">
-          <Sparkles size={18} color="#7A5AF8" strokeWidth={1.75} />
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Creator AI, web only"
+      accessibilityHint="Explains how to use Creator AI on the web"
+      className="flex-row items-center justify-between gap-3 rounded-2xl border border-[#E4D9FE] bg-[#F4EFFF] p-3.5 active:opacity-80"
+    >
+      <View className="flex-1 flex-row items-center gap-3">
+        <View className="h-10 w-10 items-center justify-center rounded-xl bg-white">
+          <Sparkles size={20} color="#8257E5" fill="#8257E5" strokeWidth={1.5} />
         </View>
         <View className="flex-1">
-          <Text className="font-inter-semibold text-sm leading-5 text-[#111827]">Creator AI</Text>
-          <Text className="font-inter text-[10.5px] leading-[14px] text-[#6B7280]">
+          <View className="flex-row items-center gap-1.5">
+            <Text className="font-inter-semibold text-sm leading-[18px] text-[#171717]">
+              Creator AI
+            </Text>
+            <View className="h-4 flex-row items-center gap-1 rounded-full border border-[#DDD0FE] bg-white px-1.5">
+              <Monitor size={10} color="#7C3AED" strokeWidth={2} />
+              <Text className="font-inter-semibold text-[9px] uppercase leading-[11px] tracking-[0.225px] text-[#7C3AED]">
+                Web
+              </Text>
+            </View>
+          </View>
+          <Text className="font-inter-medium text-[11px] leading-[14px] text-[#737373]">
             Powered by AI, curated from 100k creator profiles
           </Text>
         </View>
-        <Switch value={on} onValueChange={setOn} label="Creator AI" />
       </View>
-      {field(website, setWebsite, 'Enter website')}
-      {field(product, setProduct, 'Enter product page')}
-    </View>
+      {/* Always off on the app. */}
+      <View className="h-6 w-11 justify-center rounded-full bg-[#D8D2C4] p-0.5">
+        <View
+          className="h-5 w-5 rounded-full bg-white"
+          style={{ boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)' }}
+        />
+      </View>
+    </Pressable>
   );
 }
 
@@ -277,6 +277,7 @@ interface FilterSheetProps {
 export function FilterSheet({ visible, onClose, value, onApply, facets }: FilterSheetProps) {
   const [draft, setDraft] = useState(value);
   const [open, setOpen] = useState<Dropdown | null>(null);
+  const [webOnly, setWebOnly] = useState(false);
   // Each opening starts from what's applied.
   const [wasVisible, setWasVisible] = useState(visible);
   if (visible !== wasVisible) {
@@ -326,7 +327,7 @@ export function FilterSheet({ visible, onClose, value, onApply, facets }: Filter
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ gap: 16, paddingBottom: 4 }}
       >
-        {CREATOR_AI_ENABLED ? <CreatorAiCard /> : null}
+        <CreatorAiCard onPress={() => setWebOnly(true)} />
 
         <Section title="Choose Service">
           <View className="flex-row flex-wrap gap-2">
@@ -554,6 +555,8 @@ export function FilterSheet({ visible, onClose, value, onApply, facets }: Filter
           />
         </View>
       </View>
+
+      <WebOnlySheet visible={webOnly} onClose={() => setWebOnly(false)} />
     </BottomSheet>
   );
 }

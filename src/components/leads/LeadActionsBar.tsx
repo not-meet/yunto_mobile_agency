@@ -4,8 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePressScale } from '@/hooks/usePressScale';
 
-// Pinned to the bottom of a lead: follow up, or convert it into a campaign. It floats over the
-// content, so the screen pads its scroll view with useLeadActionsBarClearance().
+// Pinned to the bottom of a lead or campaign: follow up, and the screen's main step (convert the
+// lead into a campaign, complete the campaign). It floats over the content, so the screen pads
+// its scroll view with useLeadActionsBarClearance().
 
 const BUTTON_HEIGHT = 51;
 const PADDING_TOP = 16;
@@ -21,12 +22,12 @@ export function useLeadActionsBarClearance(): number {
 
 interface LeadActionsBarProps {
   onFollowUp: () => void;
-  onConvert: () => void;
-  // Already a campaign: the button reads "Converted" and can't be pressed.
-  converted: boolean;
+  // e.g. "Mark Converted". Disabled once it's done, e.g. "Completed".
+  primary: { label: string; onPress: () => void; disabled?: boolean };
 }
 
-export function LeadActionsBar({ onFollowUp, onConvert, converted }: LeadActionsBarProps) {
+export function LeadActionsBar({ onFollowUp, primary }: LeadActionsBarProps) {
+  const disabled = primary.disabled ?? false;
   const paddingBottom = useBottomPadding();
   const followPress = usePressScale();
   const convertPress = usePressScale();
@@ -52,17 +53,17 @@ export function LeadActionsBar({ onFollowUp, onConvert, converted }: LeadActions
       <Animated.View style={convertPress.style} className="flex-1">
         <Pressable
           {...convertPress.handlers}
-          onPress={onConvert}
-          disabled={converted}
+          onPress={primary.onPress}
+          disabled={disabled}
           accessibilityRole="button"
-          accessibilityState={{ disabled: converted }}
+          accessibilityState={{ disabled }}
           className={`h-[51px] items-center justify-center rounded-3xl bg-cocoa ${
-            converted ? 'opacity-50' : ''
+            disabled ? 'opacity-50' : ''
           }`}
           style={{ boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.1)' }}
         >
           <Text className="text-center font-inter-medium text-sm leading-[17px] text-white">
-            {converted ? 'Converted' : 'Mark Converted'}
+            {primary.label}
           </Text>
         </Pressable>
       </Animated.View>
